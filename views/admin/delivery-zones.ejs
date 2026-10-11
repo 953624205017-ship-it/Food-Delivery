@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('../partials/head') %></head>
+<body>
+<div id="toast-root"></div>
+<div class="admin-shell">
+  <%- include('partials/sidebar') %>
+  <div class="admin-main">
+    <h1 style="font-size:1.5rem;">Delivery Zones</h1>
+    <p style="color:var(--muted); max-width:560px;">
+      Orders are matched to the highest zone whose minimum amount they meet, then checked against that
+      zone's distance (and optional district). Minimum order value of ₹1,000 always applies.
+    </p>
+
+    <div class="card" style="padding:22px; margin-bottom:24px;">
+      <div class="section-title">Add Zone</div>
+      <form id="addZoneForm">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px;">
+          <div class="field"><label>Label</label><input type="text" name="label" required /></div>
+          <div class="field"><label>Min Order Amount (₹)</label><input type="number" name="minAmount" min="0" required /></div>
+          <div class="field"><label>Max Distance (KM)</label><input type="number" name="maxDistanceKm" min="0" step="0.1" required /></div>
+          <div class="field"><label>District Restriction (optional)</label><input type="text" name="districtRestriction" /></div>
+        </div>
+        <button type="submit" class="btn btn-gold">Add Zone</button>
+      </form>
+    </div>
+
+    <div class="card" style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>Label</th><th>Min Amount</th><th>Max Distance</th><th>District</th><th>Active</th><th>Actions</th></tr></thead>
+        <tbody>
+          <% zones.forEach(z => { %>
+            <tr data-id="<%= z._id %>">
+              <td><%= z.label %></td>
+              <td>₹<%= z.minAmount %></td>
+              <td><%= z.maxDistanceKm %> KM</td>
+              <td><%= z.districtRestriction || '-' %></td>
+              <td><span class="status-pill <%= z.active ? 'status-PAID' : 'status-CANCELLED' %>"><%= z.active ? 'Active' : 'Inactive' %></span></td>
+              <td>
+                <button class="btn btn-sm btn-outline toggle-zone-btn"><%= z.active ? 'Deactivate' : 'Activate' %></button>
+                <button class="btn btn-sm btn-danger delete-zone-btn">Delete</button>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+  document.getElementById('addZoneForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const body = Object.fromEntries(new FormData(form).entries());
+    try {
+      await apiPost('/api/admin/delivery-zones', body);
+      showToast('Zone added.', 'success');
+      window.location.reload();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+
+  document.querySelectorAll('.toggle-zone-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('tr');
+      const id = row.dataset.id;
+      const willActivate = btn.textContent.includes('Activate') && !btn.textContent.includes('De');
+      try {
+        const res = await fetch(`/api/admin/delivery-zones/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ active: willActivate }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        showToast('Zone updated.', 'success');
+        window.location.reload();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+
+  document.querySelectorAll('.delete-zone-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this zone?')) return;
+      const row = btn.closest('tr');
+      const id = row.dataset.id;
+      try {
+        const res = await fetch(`/api/admin/delivery-zones/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        row.remove();
+        showToast('Deleted.', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+</script>
+</body>
+</html>

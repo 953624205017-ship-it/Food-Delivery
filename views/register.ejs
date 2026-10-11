@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('partials/head') %></head>
+<body>
+<div id="toast-root"></div>
+<div class="auth-shell">
+  <div class="auth-card">
+    <div class="eyebrow">HOTEL LITTLE JAPPAN</div>
+    <h1 class="display" style="font-size:1.6rem;">Create your account</h1>
+
+    <!-- STEP 1: Details -->
+    <form id="registerForm">
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required minlength="3" maxlength="40" />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required minlength="6" />
+      </div>
+      <div class="field">
+        <label for="phone">Phone number</label>
+        <input type="tel" id="phone" name="phone" required placeholder="10-digit mobile number" maxlength="10" />
+      </div>
+      <div class="field">
+        <label for="age">Age</label>
+        <input type="number" id="age" name="age" required min="1" max="120" />
+      </div>
+      <div class="field" id="dobField" style="display:none;">
+        <label for="dob">Date of birth</label>
+        <input type="date" id="dob" name="dob" />
+      </div>
+      <button type="submit" class="btn btn-gold btn-block">Send OTP</button>
+    </form>
+
+    <!-- STEP 2: OTP -->
+    <form id="otpForm" style="display:none;">
+      <p style="text-align:center; color:var(--muted); font-size:0.9rem;">
+        Enter the 6-digit code sent to <span id="otpPhoneDisplay"></span>
+      </p>
+      <div class="otp-inputs">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
+      </div>
+      <button type="submit" class="btn btn-gold btn-block">Verify & Create Account</button>
+      <div class="resend-row">
+        Didn't get it? <button type="button" id="resendBtn" disabled>Resend OTP</button>
+        <span id="resendTimer"></span>
+      </div>
+    </form>
+
+    <div class="form-footer-link">Already have an account? <a href="/login">Log in</a></div>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+  const ageInput = document.getElementById('age');
+  const dobField = document.getElementById('dobField');
+  const dobInput = document.getElementById('dob');
+  ageInput.addEventListener('input', () => {
+    const isAdult = Number(ageInput.value) >= 18;
+    dobField.style.display = isAdult ? 'block' : 'none';
+    dobInput.required = isAdult;
+  });
+
+  const registerForm = document.getElementById('registerForm');
+  const otpForm = document.getElementById('otpForm');
+  const otpDigits = [...document.querySelectorAll('.otp-digit')];
+  const resendBtn = document.getElementById('resendBtn');
+  const resendTimer = document.getElementById('resendTimer');
+  let cooldownInterval;
+
+  function startCooldown(seconds) {
+    resendBtn.disabled = true;
+    let remaining = seconds;
+    resendTimer.textContent = `(${remaining}s)`;
+    clearInterval(cooldownInterval);
+    cooldownInterval = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(cooldownInterval);
+        resendBtn.disabled = false;
+        resendTimer.textContent = '';
+      } else {
+        resendTimer.textContent = `(${remaining}s)`;
+      }
+    }, 1000);
+  }
+
+  otpDigits.forEach((input, idx) => {
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/\D/g, '');
+      if (input.value && idx < otpDigits.length - 1) otpDigits[idx + 1].focus();
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && idx > 0) otpDigits[idx - 1].focus();
+    });
+  });
+
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = registerForm.querySelector('button');
+    btn.disabled = true;
+    btn.textContent = 'Sending OTP...';
+    try {
+      const payload = {
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+        phone: document.getElementById('phone').value,
+        age: ageInput.value,
+        dob: dobInput.value || undefined,
+      };
+      const data = await apiPost('/api/auth/register/start', payload);
+      document.getElementById('otpPhoneDisplay').textContent = data.phone;
+      registerForm.style.display = 'none';
+      otpForm.style.display = 'block';
+      otpDigits[0].focus();
+      startCooldown(data.resendAvailableInSeconds || 60);
+      showToast('OTP sent!', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send OTP';
+    }
+  });
+
+  resendBtn.addEventListener('click', async () => {
+    try {
+      const data = await apiPost('/api/auth/register/resend-otp');
+      startCooldown(data.resendAvailableInSeconds || 60);
+      showToast('OTP resent!', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+      if (err.data && err.data.retryAfterSeconds) startCooldown(err.data.retryAfterSeconds);
+    }
+  });
+
+  otpForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = otpDigits.map((i) => i.value).join('');
+    if (code.length !== 6) return showToast('Enter the full 6-digit code.', 'error');
+    const btn = otpForm.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+    try {
+      const data = await apiPost('/api/auth/register/verify-otp', { code });
+      showToast('Account created!', 'success');
+      window.location.href = data.redirect || '/dashboard';
+    } catch (err) {
+      showToast(err.message, 'error');
+      otpDigits.forEach((i) => (i.value = ''));
+      otpDigits[0].focus();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Verify & Create Account';
+    }
+  });
+</script>
+</body>
+</html>

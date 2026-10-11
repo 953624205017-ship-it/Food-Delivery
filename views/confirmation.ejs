@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('partials/head') %></head>
+<body>
+<%- include('partials/header') %>
+
+<div class="container" style="max-width:640px; padding-top:40px; padding-bottom:60px;">
+  <div class="card" style="padding:32px; text-align:center;">
+    <div class="check-circle" style="margin:0 auto 16px; box-shadow:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#17130F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:44px;height:44px;">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <h1 style="font-size:1.5rem; margin-bottom:8px;">Order Confirmed!</h1>
+    <p style="color:var(--muted); font-size:0.9rem; margin:0 0 16px;">Order ID: <%= order._id %></p>
+
+    <% if (order.payment && order.payment.provider === 'cod') { %>
+      <div style="background:rgba(201,162,75,0.1); border:1px solid rgba(201,162,75,0.3); border-radius:10px; padding:14px 18px; margin:16px 0; text-align:left;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--muted); font-size:0.88rem;">Payment Method:</span>
+          <strong>Cash on Delivery</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--muted); font-size:0.88rem;">Payment Status:</span>
+          <span style="color:var(--gold); font-weight:600;">Pay on Delivery</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--muted); font-size:0.88rem;">Order Status:</span>
+          <strong>Placed</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding-top:6px; border-top:1px dashed rgba(201,162,75,0.3);">
+          <span style="font-weight:700;">Total:</span>
+          <strong style="color:var(--charcoal); font-size:1.1rem;">₹<%= order.totalAmount %></strong>
+        </div>
+      </div>
+
+      <div style="background:rgba(36,29,20,0.05); border-radius:8px; padding:12px; margin-bottom:14px; font-size:0.88rem; color:var(--charcoal); text-align:left;">
+        <strong>Delivery Address:</strong> <%= order.deliveryAddress.formattedAddress || [order.deliveryAddress.address, order.deliveryAddress.village, order.deliveryAddress.pincode].filter(Boolean).join(', ') %>
+      </div>
+
+      <p style="background:rgba(63,143,95,0.12); color:var(--success); padding:10px 14px; border-radius:8px; font-size:0.88rem; font-weight:600; margin:14px 0;">
+        Please keep the required amount ready when your order is delivered.
+      </p>
+    <% } else if (order.payment && order.payment.provider === 'upi') { %>
+      <div style="background:rgba(201,162,75,0.1); border:1px solid rgba(201,162,75,0.3); border-radius:10px; padding:14px 18px; margin:16px 0; text-align:left;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--muted); font-size:0.88rem;">Payment Method:</span>
+          <strong>UPI / Google Pay</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--muted); font-size:0.88rem;">Payment Status:</span>
+          <span style="<%= order.payment.status === 'paid' ? 'color:var(--success);' : 'color:#1a659e;' %> font-weight:600;">
+            <%= order.payment.status === 'paid' ? 'Paid' : 'Pending Verification' %>
+          </span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--muted); font-size:0.88rem;">Order Status:</span>
+          <strong><%= order.status.replace(/_/g,' ') %></strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding-top:6px; border-top:1px dashed rgba(201,162,75,0.3);">
+          <span style="font-weight:700;">Total:</span>
+          <strong style="color:var(--charcoal); font-size:1.1rem;">₹<%= order.totalAmount %></strong>
+        </div>
+      </div>
+
+      <div style="background:rgba(36,29,20,0.05); border-radius:8px; padding:12px; margin-bottom:14px; font-size:0.88rem; color:var(--charcoal); text-align:left;">
+        <strong>Delivery Address:</strong> <%= order.deliveryAddress.formattedAddress || [order.deliveryAddress.address, order.deliveryAddress.village, order.deliveryAddress.pincode].filter(Boolean).join(', ') %>
+      </div>
+
+      <p style="background:rgba(33,118,174,0.12); color:#1a659e; padding:10px 14px; border-radius:8px; font-size:0.88rem; font-weight:600; margin:14px 0;">
+        Your payment confirmation has been submitted. Our team will verify the UPI transaction and start preparing your order.
+      </p>
+    <% } else { %>
+      <div style="background:rgba(201,162,75,0.1); border:1px solid rgba(201,162,75,0.3); border-radius:10px; padding:14px 18px; margin:16px 0; text-align:left;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--muted); font-size:0.88rem;">Payment Method:</span>
+          <strong>Online (Razorpay)</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--muted); font-size:0.88rem;">Payment Status:</span>
+          <span style="color:var(--success); font-weight:600;">Paid</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--muted); font-size:0.88rem;">Order Status:</span>
+          <strong><%= order.status.replace(/_/g,' ') %></strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding-top:6px; border-top:1px dashed rgba(201,162,75,0.3);">
+          <span style="font-weight:700;">Total:</span>
+          <strong style="color:var(--charcoal); font-size:1.1rem;">₹<%= order.totalAmount %></strong>
+        </div>
+      </div>
+
+      <div style="background:rgba(36,29,20,0.05); border-radius:8px; padding:12px; margin-bottom:14px; font-size:0.88rem; color:var(--charcoal); text-align:left;">
+        <strong>Delivery Address:</strong> <%= order.deliveryAddress.formattedAddress || [order.deliveryAddress.address, order.deliveryAddress.village, order.deliveryAddress.pincode].filter(Boolean).join(', ') %>
+      </div>
+    <% } %>
+
+    <div style="display:flex; gap:10px; justify-content:center; margin-top:20px; flex-wrap:wrap;">
+      <a href="/bill/<%= order._id %>" class="btn btn-gold">View Bill</a>
+      <a href="/dashboard" class="btn btn-outline">Back to Menu</a>
+      <% if (ownerPhone) { %>
+        <a href="tel:<%= ownerPhone %>" class="btn btn-dark">Call Hotel Little Jappan</a>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="card" style="padding:22px; margin-top:20px;">
+    <div class="section-title">Order Status</div>
+    <span class="status-pill status-<%= order.status %>"><%= order.status.replace(/_/g,' ') %></span>
+  </div>
+</div>
+</body>
+</html>

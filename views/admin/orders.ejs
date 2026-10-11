@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('../partials/head') %></head>
+<body>
+<div id="toast-root"></div>
+<div class="admin-shell">
+  <%- include('partials/sidebar') %>
+  <div class="admin-main">
+    <h1 style="font-size:1.5rem;">Orders</h1>
+
+    <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+      <a href="/admin/orders" class="btn btn-sm <%= !statusFilter ? 'btn-gold' : 'btn-outline' %>">All</a>
+      <% ['PENDING_PAYMENT','PAYMENT_VERIFICATION_PENDING','PLACED','PAID','PREPARING','READY','OUT_FOR_DELIVERY','DELIVERED','CANCELLED'].forEach(s => { %>
+        <a href="/admin/orders?status=<%= s %>" class="btn btn-sm <%= statusFilter === s ? 'btn-gold' : 'btn-outline' %>"><%= s.replace(/_/g,' ') %></a>
+      <% }) %>
+    </div>
+
+    <div class="card" style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr><th>Order</th><th>Customer</th><th>Items</th><th>Amount</th><th>Payment</th><th>Distance</th><th>Status</th><th>Update</th></tr>
+        </thead>
+        <tbody>
+          <% orders.forEach(o => { %>
+            <tr data-id="<%= o._id %>">
+              <td><%= String(o._id).slice(-8) %><br/><small style="color:var(--muted);"><%= new Date(o.createdAt).toLocaleString('en-IN') %></small></td>
+              <td><%= o.user ? o.user.username : '-' %><br/><small style="color:var(--muted);"><%= o.user ? o.user.phone : '' %></small></td>
+              <td><%= o.items.map(i => `${i.name} × ${i.quantity}`).join(', ') %></td>
+              <td>₹<%= o.totalAmount %></td>
+              <td>
+                <% if (o.payment && o.payment.provider === 'cod') { %>
+                  <span class="badge-cod">CASH ON DELIVERY</span><br/>
+                  <small style="color:var(--muted); font-weight:600;">Payment: PENDING</small>
+                <% } else if (o.payment && o.payment.provider === 'upi') { %>
+                  <span class="badge-upi">UPI</span><br/>
+                  <small class="payment-status-text" style="<%= o.payment.status === 'paid' ? 'color:var(--success);' : 'color:#1a659e;' %> font-weight:600;">
+                    <%= o.payment.status === 'paid' ? 'PAID' : 'PENDING VERIFICATION' %>
+                  </small>
+                  <% if (o.payment.status !== 'paid') { %>
+                    <br/>
+                    <button type="button" class="btn btn-sm btn-gold btn-verify-upi" data-id="<%= o._id %>" style="padding:3px 8px; font-size:0.75rem; margin-top:4px;">
+                      Verify Payment
+                    </button>
+                  <% } %>
+                <% } else { %>
+                  <span class="badge-online">Online (Razorpay)</span><br/>
+                  <small style="color:var(--muted);">Payment: <%= o.payment && o.payment.status === 'paid' ? 'PAID' : (o.payment?.status?.toUpperCase() || '-') %></small>
+                <% } %>
+              </td>
+              <td><%= o.distanceKm != null ? o.distanceKm + ' KM' : '-' %></td>
+              <td><span class="status-pill status-<%= o.status %>"><%= o.status.replace(/_/g,' ') %></span></td>
+              <td>
+                <select class="status-select">
+                  <% ['PENDING_PAYMENT','PAYMENT_VERIFICATION_PENDING','PLACED','PAID','PREPARING','READY','OUT_FOR_DELIVERY','DELIVERED','CANCELLED'].forEach(s => { %>
+                    <option value="<%= s %>" <%= o.status === s ? 'selected' : '' %>><%= s.replace(/_/g,' ') %></option>
+                  <% }) %>
+                </select>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if (totalPages > 1) { %>
+      <div style="display:flex; gap:8px; margin-top:16px;">
+        <% for (let p = 1; p <= totalPages; p++) { %>
+          <a href="/admin/orders?page=<%= p %><%= statusFilter ? '&status='+statusFilter : '' %>" class="btn btn-sm <%= p === page ? 'btn-gold' : 'btn-outline' %>"><%= p %></a>
+        <% } %>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+  document.querySelectorAll('.btn-verify-upi').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      btn.disabled = true;
+      btn.textContent = 'Verifying...';
+      try {
+        const res = await fetch(`/api/admin/orders/${id}/verify-payment`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        showToast('Payment verified successfully.', 'success');
+        const row = btn.closest('tr');
+        const statusText = row.querySelector('.payment-status-text');
+        if (statusText) {
+          statusText.textContent = 'PAID';
+          statusText.style.color = 'var(--success)';
+        }
+        const pill = row.querySelector('.status-pill');
+        if (pill) {
+          pill.className = 'status-pill status-PAID';
+          pill.textContent = 'PAID';
+        }
+        const sel = row.querySelector('.status-select');
+        if (sel) sel.value = 'PAID';
+        btn.remove();
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Verify Payment';
+      }
+    });
+  });
+
+  document.querySelectorAll('.status-select').forEach((sel) => {
+    sel.addEventListener('change', async () => {
+      const row = sel.closest('tr');
+      const id = row.dataset.id;
+      try {
+        const res = await fetch(`/api/admin/orders/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: sel.value }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        showToast('Status updated.', 'success');
+        const pill = row.querySelector('.status-pill');
+        pill.className = `status-pill status-${sel.value}`;
+        pill.textContent = sel.value.replace(/_/g, ' ');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('partials/head') %></head>
+<body>
+<%- include('partials/header') %>
+
+<div class="container" style="padding:32px 0 60px;">
+  <h1 style="font-size:1.4rem;">My Orders</h1>
+
+  <% if (!orders.length) { %>
+    <p style="color:var(--muted);">You haven't placed any orders yet.</p>
+  <% } else { %>
+    <div class="card" style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Items</th>
+            <th>Total</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Placed</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% orders.forEach(o => { %>
+            <tr>
+              <td><%= String(o._id).slice(-8) %></td>
+              <td><%= o.items.map(i => `${i.name} × ${i.quantity}`).join(', ') %></td>
+              <td>₹<%= o.totalAmount %></td>
+              <td>
+                <% if (o.payment && o.payment.provider === 'cod') { %>
+                  <div><strong>Cash on Delivery</strong></div>
+                  <small style="color:var(--gold); font-weight:600;">Pay on Delivery</small>
+                <% } else if (o.payment && o.payment.provider === 'upi') { %>
+                  <div><strong>UPI</strong></div>
+                  <small style="<%= o.payment.status === 'paid' ? 'color:var(--success);' : 'color:#1a659e;' %> font-weight:600;">
+                    <%= o.payment.status === 'paid' ? 'Paid' : 'Pending Verification' %>
+                  </small>
+                <% } else { %>
+                  <div><strong>Razorpay</strong></div>
+                  <small style="color:var(--muted);"><%= o.payment && o.payment.status === 'paid' ? 'Paid' : (o.payment?.status || '-') %></small>
+                <% } %>
+              </td>
+              <td><span class="status-pill status-<%= o.status %>"><%= o.status.replace(/_/g,' ') %></span></td>
+              <td><%= new Date(o.createdAt).toLocaleDateString('en-IN') %></td>
+              <td><% if (o.status !== 'PENDING_PAYMENT') { %><a href="/bill/<%= o._id %>" class="btn btn-sm btn-outline">Bill</a><% } %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if (totalPages > 1) { %>
+      <div style="display:flex; gap:8px; margin-top:16px;">
+        <% for (let p = 1; p <= totalPages; p++) { %>
+          <a href="/orders?page=<%= p %>" class="btn btn-sm <%= p === page ? 'btn-gold' : 'btn-outline' %>"><%= p %></a>
+        <% } %>
+      </div>
+    <% } %>
+  <% } %>
+</div>
+</body>
+</html>

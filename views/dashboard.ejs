@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('partials/head') %></head>
+<body>
+<%- include('partials/header') %>
+
+<section class="hero-strip">
+  <div class="container">
+    <h1>Today's Menu</h1>
+    <p>Freshly prepared, priced daily by the kitchen. Order online — delivered straight from Hotel Little Jappan.</p>
+  </div>
+</section>
+
+<div class="container">
+  <% if (!foods.length) { %>
+    <p style="padding:40px 0; color:var(--muted);">No items on the menu right now — please check back soon.</p>
+  <% } else { %>
+    <div class="food-grid">
+      <% foods.forEach(food => { %>
+        <div class="card food-card" data-food-id="<%= food._id %>" data-price="<%= food.price %>">
+          <div class="img-wrap">
+            <img src="<%= food.image %>" alt="<%= food.name %>" loading="lazy" />
+            <% if (food.available) { %>
+              <span class="badge">Available</span>
+            <% } else { %>
+              <span class="badge sold-out">Sold Out</span>
+            <% } %>
+          </div>
+          <div class="body">
+            <h3><%= food.name %></h3>
+            <div class="desc"><%= food.description || '' %></div>
+            <div class="price">₹<%= food.price %></div>
+            <% if (food.available) { %>
+              <div class="qty-row">
+                <button class="qty-btn qty-minus" type="button">−</button>
+                <span class="qty-value">1</span>
+                <button class="qty-btn qty-plus" type="button">+</button>
+              </div>
+              <button class="btn btn-gold btn-block buy-now-btn" type="button">Buy Now</button>
+            <% } else { %>
+              <button class="btn btn-outline btn-block" disabled>SOLD OUT</button>
+            <% } %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+  document.querySelectorAll('.food-card').forEach((card) => {
+    const qtyValue = card.querySelector('.qty-value');
+    const minus = card.querySelector('.qty-minus');
+    const plus = card.querySelector('.qty-plus');
+    const buyBtn = card.querySelector('.buy-now-btn');
+
+    if (minus) minus.addEventListener('click', () => {
+      const v = Math.max(1, parseInt(qtyValue.textContent, 10) - 1);
+      qtyValue.textContent = v;
+    });
+    if (plus) plus.addEventListener('click', () => {
+      const v = Math.min(50, parseInt(qtyValue.textContent, 10) + 1);
+      qtyValue.textContent = v;
+    });
+    if (buyBtn) buyBtn.addEventListener('click', () => {
+      const foodId = card.dataset.foodId;
+      const qty = qtyValue.textContent;
+      window.location.href = `/order?foodId=${foodId}&qty=${qty}`;
+    });
+  });
+</script>
+</body>
+</html>

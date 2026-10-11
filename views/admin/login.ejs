@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('../partials/head') %></head>
+<body>
+<div id="toast-root"></div>
+<div class="auth-shell">
+  <div class="auth-card">
+    <div class="eyebrow">ADMIN</div>
+    <h1 class="display" style="font-size:1.6rem;"><%= hotelName %></h1>
+    <form id="adminLoginForm">
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required />
+      </div>
+      <button type="submit" class="btn btn-dark btn-block">Log in to Admin</button>
+    </form>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+  document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button');
+    btn.disabled = true;
+    try {
+      const data = await apiPost('/api/admin/login', {
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+      });
+      window.location.href = data.redirect || '/admin';
+    } catch (err) {
+      showToast(err.message, 'error');
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

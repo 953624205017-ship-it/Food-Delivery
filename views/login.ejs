@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('partials/head') %></head>
+<body>
+<div id="toast-root"></div>
+<div class="auth-shell">
+  <div class="auth-card">
+    <div class="eyebrow">HOTEL LITTLE JAPPAN</div>
+    <h1 class="display" style="font-size:1.6rem;">Welcome back</h1>
+    <form id="loginForm">
+      <div class="field">
+        <label for="phone">Phone number</label>
+        <input type="tel" id="phone" name="phone" required maxlength="10" placeholder="10-digit mobile number" />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required />
+      </div>
+      <button type="submit" class="btn btn-gold btn-block">Log in</button>
+    </form>
+    <div class="form-footer-link">New here? <a href="/register">Create an account</a></div>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button');
+    btn.disabled = true;
+    btn.textContent = 'Logging in...';
+    try {
+      const data = await apiPost('/api/auth/login', {
+        phone: document.getElementById('phone').value,
+        password: document.getElementById('password').value,
+      });
+      window.location.href = data.redirect || '/dashboard';
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Log in';
+    }
+  });
+</script>
+</body>
+</html>

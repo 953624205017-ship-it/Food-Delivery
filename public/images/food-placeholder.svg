@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#EEE2C8"/>
+  <circle cx="200" cy="130" r="55" fill="#C9A24B" opacity="0.5"/>
+  <text x="200" y="230" font-family="Georgia, serif" font-size="20" fill="#8A7F6D" text-anchor="middle">Hotel Little Jappan</text>
+</svg>

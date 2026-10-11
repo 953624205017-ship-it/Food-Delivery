@@ -1,0 +1,14 @@
+<header class="site-header">
+  <div class="bar">
+    <a href="/dashboard" class="brand"><%= hotelName %> <small>Est. Alangulam</small></a>
+    <% if (typeof currentUser !== 'undefined' && currentUser) { %>
+      <nav class="nav-links">
+        <a href="/dashboard">Menu</a>
+        <a href="/orders">Orders</a>
+        <span>Hi, <%= currentUser.username %></span>
+        <a href="#" onclick="logoutUser(event)">Logout</a>
+      </nav>
+    <% } %>
+  </div>
+</header>
+<div id="toast-root"></div>

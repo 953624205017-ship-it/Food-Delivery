@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('../partials/head') %></head>
+<body>
+<div id="toast-root"></div>
+<div class="admin-shell">
+  <%- include('partials/sidebar') %>
+  <div class="admin-main">
+    <h1 style="font-size:1.5rem;">Dashboard</h1>
+    <div class="stat-grid">
+      <div class="card stat-card"><div class="num"><%= stats.foodCount %></div><div class="label">Menu Items</div></div>
+      <div class="card stat-card"><div class="num"><%= stats.pendingCount %></div><div class="label">Pending Payment</div></div>
+      <div class="card stat-card"><div class="num"><%= stats.paidCount %></div><div class="label">Active Orders</div></div>
+      <div class="card stat-card"><div class="num"><%= stats.totalOrders %></div><div class="label">Total Orders</div></div>
+    </div>
+    <div class="card" style="padding:22px;">
+      <p style="color:var(--muted);">Use the sidebar to manage the menu, review orders, and configure delivery zones.</p>
+    </div>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+</body>
+</html>

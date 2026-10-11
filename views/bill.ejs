@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('partials/head') %></head>
+<body>
+<%- include('partials/header') %>
+
+<div class="bill-sheet">
+  <div class="bill-paper" id="billPaper">
+    <div class="bill-header">
+      <div class="name"><%= hotelName %></div>
+      <div style="font-size:0.85rem; opacity:0.8;">Owner: <%= ownerName %></div>
+    </div>
+    <div class="bill-body">
+      <div class="bill-section">
+        <h4>Customer Details</h4>
+        <div class="bill-row"><span>Name</span><span><%= user.username %></span></div>
+        <div class="bill-row"><span>Phone</span><span><%= user.phone %></span></div>
+        <div class="bill-row"><span>Address</span><span><%= order.deliveryAddress.address %></span></div>
+        <div class="bill-row"><span>Street</span><span><%= order.deliveryAddress.street || '-' %></span></div>
+        <div class="bill-row"><span>Village</span><span><%= order.deliveryAddress.village %></span></div>
+        <div class="bill-row"><span>Pincode</span><span><%= order.deliveryAddress.pincode %></span></div>
+      </div>
+
+      <div class="bill-section">
+        <h4>Order Details</h4>
+        <div class="bill-row"><span>Order ID</span><span><%= order._id %></span></div>
+        <div class="bill-row"><span>Order Date</span><span><%= new Date(order.createdAt).toLocaleString('en-IN') %></span></div>
+        <% order.items.forEach(item => { %>
+          <div class="bill-row"><span><%= item.name %> × <%= item.quantity %></span><span>₹<%= item.lineTotal %></span></div>
+        <% }) %>
+      </div>
+
+      <div class="bill-section">
+        <h4>Payment Details</h4>
+        <% if (order.payment && order.payment.provider === 'cod') { %>
+          <div class="bill-row"><span>Payment ID</span><span>-</span></div>
+          <div class="bill-row"><span>Method</span><span>Cash on Delivery</span></div>
+          <div class="bill-row"><span>Status</span><span>Pending (Pay on Delivery)</span></div>
+        <% } else if (order.payment && order.payment.provider === 'upi') { %>
+          <div class="bill-row"><span>Payment ID</span><span>-</span></div>
+          <div class="bill-row"><span>Method</span><span>UPI</span></div>
+          <div class="bill-row"><span>Status</span><span><%= order.payment.status === 'paid' ? 'Paid' : 'Pending Verification' %></span></div>
+          <% if (order.payment.status === 'paid' && order.payment.paidAt) { %>
+            <div class="bill-row"><span>Paid On</span><span><%= new Date(order.payment.paidAt).toLocaleString('en-IN') %></span></div>
+          <% } %>
+        <% } else { %>
+          <div class="bill-row"><span>Payment ID</span><span><%= order.payment.razorpayPaymentId || '-' %></span></div>
+          <div class="bill-row"><span>Method</span><span>Online (Razorpay)</span></div>
+          <div class="bill-row"><span>Status</span><span><%= order.payment.status %></span></div>
+          <div class="bill-row"><span>Paid On</span><span><%= order.payment.paidAt ? new Date(order.payment.paidAt).toLocaleString('en-IN') : '-' %></span></div>
+        <% } %>
+      </div>
+
+      <div class="bill-section">
+        <h4>Delivery Details</h4>
+        <div class="bill-row"><span>Distance</span><span><%= order.distanceKm %> KM</span></div>
+        <div class="bill-row"><span>Zone</span><span><%= order.eligibilityZoneLabel %></span></div>
+      </div>
+
+      <div class="bill-total"><span>Total Amount</span><span>₹<%= order.totalAmount %></span></div>
+
+      <p style="text-align:center; color:var(--muted); font-size:0.85rem; margin-top:20px;">
+        Thank you for ordering from <%= hotelName %>
+      </p>
+    </div>
+  </div>
+
+  <div class="bill-actions">
+    <a href="/bill/<%= order._id %>/download" class="btn btn-gold">Download PDF</a>
+    <button class="btn btn-outline" onclick="window.print()">Print</button>
+  </div>
+</div>
+
+<style>
+  @media print {
+    .site-header, .bill-actions, #toast-root { display: none !important; }
+    .bill-sheet { margin: 0; padding: 0; max-width: 100%; }
+  }
+</style>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('../partials/head') %></head>
+<body>
+<div id="toast-root"></div>
+<div class="admin-shell">
+  <%- include('partials/sidebar') %>
+  <div class="admin-main">
+    <h1 style="font-size:1.5rem;">Manage Foods</h1>
+
+    <div class="card" style="padding:22px; margin-bottom:24px;">
+      <div class="section-title">Add New Item</div>
+      <form id="addFoodForm" enctype="multipart/form-data">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px;">
+          <div class="field"><label>Name</label><input type="text" name="name" required /></div>
+          <div class="field"><label>Price (₹)</label><input type="number" name="price" min="0" step="0.01" required /></div>
+          <div class="field"><label>Category</label><input type="text" name="category" placeholder="General" /></div>
+          <div class="field"><label>Image</label><input type="file" name="image" accept="image/*" /></div>
+        </div>
+        <div class="field"><label>Description</label><input type="text" name="description" /></div>
+        <button type="submit" class="btn btn-gold">Add Item</button>
+      </form>
+    </div>
+
+    <div class="card" style="overflow-x:auto;">
+      <table class="data-table" id="foodsTable">
+        <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          <% foods.forEach(food => { %>
+            <tr data-id="<%= food._id %>">
+              <td><img src="<%= food.image %>" style="width:48px;height:48px;object-fit:cover;border-radius:6px;" /></td>
+              <td>
+                <span class="view-name"><%= food.name %></span>
+              </td>
+              <td>₹<span class="view-price"><%= food.price %></span></td>
+              <td>
+                <span class="status-pill <%= food.available ? 'status-PAID' : 'status-CANCELLED' %>">
+                  <%= food.available ? 'Available' : 'Sold Out' %>
+                </span>
+              </td>
+              <td style="white-space:nowrap;">
+                <button class="btn btn-sm btn-outline toggle-btn"><%= food.available ? 'Mark Sold Out' : 'Mark Available' %></button>
+                <button class="btn btn-sm btn-danger delete-btn">Delete</button>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+  document.getElementById('addFoodForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const btn = form.querySelector('button');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/admin/foods', { method: 'POST', body: new FormData(form) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to add item.');
+      showToast('Item added.', 'success');
+      window.location.reload();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.querySelectorAll('.toggle-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('tr');
+      const id = row.dataset.id;
+      const isAvailable = btn.textContent.includes('Sold Out'); // if it says "Mark Sold Out" it's currently available
+      try {
+        const res = await fetch(`/api/admin/foods/${id}/availability`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ available: !isAvailable }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        showToast('Updated.', 'success');
+        window.location.reload();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+
+  document.querySelectorAll('.delete-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this item?')) return;
+      const row = btn.closest('tr');
+      const id = row.dataset.id;
+      try {
+        const res = await fetch(`/api/admin/foods/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        row.remove();
+        showToast('Deleted.', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+</script>
+</body>
+</html>

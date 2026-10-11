@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('partials/head') %></head>
+<body>
+<%- include('partials/header') %>
+
+<div class="container">
+  <div class="order-layout">
+    <!-- LEFT: details -->
+    <div>
+      <div class="card" style="padding:22px; margin-bottom:20px;">
+        <div class="section-title">Your Details</div>
+        <p style="margin:4px 0;"><strong>Name:</strong> <%= user.username %></p>
+        <p style="margin:4px 0;"><strong>Phone:</strong> <%= user.phone %></p>
+      </div>
+
+      <div class="card" style="padding:22px; margin-bottom:20px; display:flex; gap:16px;">
+        <img src="<%= food.image %>" alt="<%= food.name %>" style="width:100px; height:100px; object-fit:cover; border-radius:10px;" />
+        <div>
+          <div class="section-title">Food</div>
+          <h3 style="margin:0 0 4px;"><%= food.name %></h3>
+          <p style="margin:0; color:var(--muted);">Qty: <span id="qtyDisplay"><%= quantity %></span> × ₹<%= food.price %></p>
+        </div>
+      </div>
+
+      <div class="card" style="padding:22px;">
+        <div class="section-title">Delivery Address</div>
+        <form id="addressForm">
+          <div class="field">
+            <label for="address">Address</label>
+            <input type="text" id="address" name="address" required placeholder="House / building, area" />
+          </div>
+          <div class="field">
+            <label for="street">Street</label>
+            <input type="text" id="street" name="street" />
+          </div>
+          <div class="field">
+            <label for="village">Village / Town</label>
+            <input type="text" id="village" name="village" required />
+          </div>
+          <div class="field">
+            <label for="pincode">Pincode</label>
+            <input type="text" id="pincode" name="pincode" required maxlength="6" pattern="[0-9]{6}" />
+          </div>
+          <button type="submit" class="btn btn-outline btn-block" id="checkBtn">Check Delivery Eligibility</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- RIGHT: summary -->
+    <div>
+      <div class="card" style="padding:22px; position:sticky; top:90px;">
+        <div class="section-title">Order Summary</div>
+        <div class="summary-row"><span>Subtotal</span><span id="sumSubtotal">₹<%= (food.price * quantity).toFixed(2) %></span></div>
+        <div class="summary-row"><span>Delivery Distance</span><span id="sumDistance">Not checked yet</span></div>
+        <div class="summary-row total"><span>Total</span><span id="sumTotal">₹<%= (food.price * quantity).toFixed(2) %></span></div>
+
+        <div id="eligibilityBox"></div>
+
+        <div class="section-title" style="margin-top:16px;">Payment Method</div>
+        <div class="payment-methods">
+          <label class="payment-option-card selected" id="optOnline">
+            <input type="radio" name="paymentMethod" value="online" checked />
+            <div class="payment-option-info">
+              <div class="payment-option-title">Online Payment</div>
+              <div class="payment-option-desc">Razorpay (Cards, NetBanking, Wallet)</div>
+            </div>
+          </label>
+
+          <label class="payment-option-card" id="optUpi">
+            <input type="radio" name="paymentMethod" value="upi" />
+            <div class="payment-option-info">
+              <div class="payment-option-title">UPI / Google Pay</div>
+              <div class="payment-option-desc">Pay using UPI QR / UPI app</div>
+            </div>
+          </label>
+
+          <label class="payment-option-card" id="optCod">
+            <input type="radio" name="paymentMethod" value="cod" />
+            <div class="payment-option-info">
+              <div class="payment-option-title">Cash on Delivery</div>
+              <div class="payment-option-desc">Pay when your food is delivered</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- UPI payment details box (shown when UPI is selected) -->
+        <div id="upiBox" style="display:none; margin:14px 0; padding:16px; border:1.5px solid var(--gold); border-radius:12px; background:rgba(201,162,75,0.06); text-align:center;">
+          <div id="upiLoading" style="display:none; color:var(--muted); font-size:0.9rem; padding:12px;">Generating UPI payment QR...</div>
+          <div id="upiError" style="display:none; color:var(--danger); font-size:0.88rem; padding:8px;"></div>
+          <div id="upiContent" style="display:none;">
+            <div style="font-size:0.85rem; color:var(--muted); margin-bottom:2px;">Payment Amount</div>
+            <div id="upiAmount" style="font-family:var(--font-display); font-size:1.4rem; color:var(--gold); font-weight:700; margin-bottom:10px;">₹0.00</div>
+
+            <div style="display:inline-block; padding:8px; background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.08); margin:4px auto 10px;">
+              <img id="upiQrImg" src="" alt="UPI QR Code" style="width:190px; height:190px; display:block; margin:0 auto;" />
+            </div>
+
+            <div style="margin:6px 0 12px; font-size:0.88rem;">
+              <span style="color:var(--muted);">UPI ID: </span>
+              <strong id="upiIdText" style="letter-spacing:0.02em; user-select:all;"></strong>
+            </div>
+
+            <!-- Mobile UPI Button -->
+            <a id="upiAppBtn" href="#" class="btn btn-block" style="background:#241d14; color:var(--gold-light); margin-bottom:6px; padding:11px 16px; font-size:0.92rem;">
+              Pay using UPI App
+            </a>
+            <p style="font-size:0.75rem; color:var(--muted); margin:0 0 16px;">
+              (Opens Google Pay, PhonePe, Paytm, BHIM, or any installed UPI app)
+            </p>
+
+            <div style="border-top:1px dashed rgba(201,162,75,0.3); padding-top:14px;">
+              <p style="font-weight:600; font-size:0.9rem; margin-bottom:8px;">Have you completed the UPI payment?</p>
+              <button type="button" class="btn btn-gold btn-block" id="upiPaidBtn">I Have Paid</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-gold btn-block" id="payBtn" disabled>Confirm & Pay Online</button>
+        <p id="paymentHint" style="font-size:0.78rem; color:var(--muted); text-align:center; margin-top:10px;">
+          Pay securely using Razorpay UPI, Cards, or NetBanking.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="/js/common.js"></script>
+<script>
+  const FOOD_ID = "<%= food._id %>";
+  let QUANTITY = <%= quantity %>;
+  const items = [{ foodId: FOOD_ID, quantity: QUANTITY }];
+  let currentOrderId = null;
+  let eligible = false;
+  let selectedMethod = 'online';
+  let isSubmitting = false;
+
+  const addressForm = document.getElementById('addressForm');
+  const eligibilityBox = document.getElementById('eligibilityBox');
+  const payBtn = document.getElementById('payBtn');
+  const checkBtn = document.getElementById('checkBtn');
+  const optOnline = document.getElementById('optOnline');
+  const optUpi = document.getElementById('optUpi');
+  const optCod = document.getElementById('optCod');
+  const upiBox = document.getElementById('upiBox');
+  const upiLoading = document.getElementById('upiLoading');
+  const upiError = document.getElementById('upiError');
+  const upiContent = document.getElementById('upiContent');
+  const upiAmount = document.getElementById('upiAmount');
+  const upiQrImg = document.getElementById('upiQrImg');
+  const upiIdText = document.getElementById('upiIdText');
+  const upiAppBtn = document.getElementById('upiAppBtn');
+  const upiPaidBtn = document.getElementById('upiPaidBtn');
+  const paymentHint = document.getElementById('paymentHint');
+
+  async function ensureOrderCreated() {
+    if (currentOrderId) return currentOrderId;
+    const body = {
+      items,
+      address: document.getElementById('address').value,
+      street: document.getElementById('street').value,
+      village: document.getElementById('village').value,
+      pincode: document.getElementById('pincode').value,
+    };
+    const orderData = await apiPost('/api/orders/create', body);
+    currentOrderId = orderData.orderId;
+    return currentOrderId;
+  }
+
+  async function loadUpiDetails() {
+    if (!eligible) return;
+    upiBox.style.display = 'block';
+    upiLoading.style.display = 'block';
+    upiError.style.display = 'none';
+    upiContent.style.display = 'none';
+
+    try {
+      const orderId = await ensureOrderCreated();
+      const data = await apiPost('/api/payment/upi/details', { orderId });
+      if (!data.success || !data.upiAvailable) {
+        throw new Error(data.message || 'UPI payment is currently unavailable.');
+      }
+      upiAmount.textContent = `₹${Number(data.amount).toFixed(2)}`;
+      upiQrImg.src = data.qrCode;
+      upiIdText.textContent = data.upiId;
+      upiAppBtn.href = data.upiUri;
+      upiLoading.style.display = 'none';
+      upiContent.style.display = 'block';
+    } catch (err) {
+      upiLoading.style.display = 'none';
+      upiError.textContent = err.message || 'UPI payment is currently unavailable.';
+      upiError.style.display = 'block';
+      showToast(err.message || 'UPI payment is currently unavailable.', 'error');
+    }
+  }
+
+  function updatePaymentMethod(method) {
+    selectedMethod = method;
+    [optOnline, optUpi, optCod].forEach(el => el.classList.remove('selected'));
+
+    if (method === 'online') {
+      optOnline.classList.add('selected');
+      optOnline.querySelector('input').checked = true;
+      upiBox.style.display = 'none';
+      payBtn.style.display = 'block';
+      payBtn.textContent = 'Confirm & Pay Online';
+      paymentHint.textContent = 'Pay securely using Razorpay UPI, Cards, or NetBanking.';
+    } else if (method === 'upi') {
+      optUpi.classList.add('selected');
+      optUpi.querySelector('input').checked = true;
+      payBtn.style.display = 'none';
+      paymentHint.textContent = 'Scan the QR code or tap the UPI button to pay from your UPI app.';
+      if (eligible) {
+        loadUpiDetails();
+      } else {
+        upiBox.style.display = 'none';
+      }
+    } else {
+      optCod.classList.add('selected');
+      optCod.querySelector('input').checked = true;
+      upiBox.style.display = 'none';
+      payBtn.style.display = 'block';
+      payBtn.textContent = 'Place Order with Cash on Delivery';
+      paymentHint.textContent = 'Pay with cash or UPI when your food is delivered.';
+    }
+  }
+
+  optOnline.addEventListener('click', (e) => {
+    e.preventDefault();
+    updatePaymentMethod('online');
+  });
+
+  optUpi.addEventListener('click', (e) => {
+    e.preventDefault();
+    updatePaymentMethod('upi');
+  });
+
+  optCod.addEventListener('click', (e) => {
+    e.preventDefault();
+    updatePaymentMethod('cod');
+  });
+
+  ['address', 'street', 'village', 'pincode'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => {
+        eligible = false;
+        currentOrderId = null;
+        payBtn.disabled = true;
+        if (selectedMethod === 'upi') {
+          upiBox.style.display = 'none';
+        }
+      });
+    }
+  });
+
+  addressForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    checkBtn.disabled = true;
+    checkBtn.textContent = 'Checking...';
+    eligible = false;
+    currentOrderId = null;
+    payBtn.disabled = true;
+
+    const body = {
+      items,
+      address: document.getElementById('address').value,
+      street: document.getElementById('street').value,
+      village: document.getElementById('village').value,
+      pincode: document.getElementById('pincode').value,
+    };
+
+    try {
+      const data = await apiPost('/api/orders/quote', body);
+      document.getElementById('sumSubtotal').textContent = `₹${data.subtotal.toFixed(2)}`;
+      document.getElementById('sumTotal').textContent = `₹${data.totalAmount.toFixed(2)}`;
+      document.getElementById('sumDistance').textContent = `${data.distanceKm} KM`;
+
+      if (data.eligible) {
+        eligible = true;
+        eligibilityBox.innerHTML = `<div class="eligibility-box ok">✓ Delivery available (${data.zoneLabel}). Distance: ${data.distanceKm} KM.</div>`;
+        payBtn.disabled = false;
+        if (selectedMethod === 'upi') {
+          loadUpiDetails();
+        }
+      } else {
+        eligibilityBox.innerHTML = `<div class="eligibility-box bad">${data.reason}</div>`;
+        payBtn.disabled = true;
+        upiBox.style.display = 'none';
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+      eligibilityBox.innerHTML = `<div class="eligibility-box bad">${err.message}</div>`;
+      upiBox.style.display = 'none';
+    } finally {
+      checkBtn.disabled = false;
+      checkBtn.textContent = 'Check Delivery Eligibility';
+    }
+  });
+
+  // UPI Manual Confirmation ("I Have Paid")
+  upiPaidBtn.addEventListener('click', async () => {
+    if (!eligible || isSubmitting) return;
+    isSubmitting = true;
+    upiPaidBtn.disabled = true;
+    upiPaidBtn.textContent = 'Confirming Payment...';
+
+    try {
+      const orderId = await ensureOrderCreated();
+      const data = await apiPost('/api/payment/upi/confirm', { orderId });
+      upiPaidBtn.textContent = 'Payment Submitted';
+      showToast('UPI payment confirmation submitted! Awaiting verification.', 'success');
+      setTimeout(() => {
+        window.location.href = data.redirect || `/order/${orderId}/confirmation`;
+      }, 700);
+    } catch (err) {
+      showToast(err.message, 'error');
+      isSubmitting = false;
+      upiPaidBtn.disabled = false;
+      upiPaidBtn.textContent = 'I Have Paid';
+    }
+  });
+
+  // Action button for Online (Razorpay) and COD
+  payBtn.addEventListener('click', async () => {
+    if (!eligible || isSubmitting) return;
+    isSubmitting = true;
+    payBtn.disabled = true;
+
+    const initialBtnText = selectedMethod === 'online' ? 'Confirm & Pay Online' : 'Place Order with Cash on Delivery';
+
+    if (selectedMethod === 'cod') {
+      payBtn.textContent = 'Placing Order...';
+    } else {
+      payBtn.textContent = 'Preparing order...';
+    }
+
+    try {
+      const orderId = await ensureOrderCreated();
+
+      // If COD, call COD payment endpoint
+      if (selectedMethod === 'cod') {
+        const codData = await apiPost('/api/payment/cod', { orderId });
+        payBtn.textContent = 'Order Placed Successfully';
+        showToast('Order placed successfully with Cash on Delivery!', 'success');
+        setTimeout(() => {
+          window.location.href = codData.redirect || `/order/${orderId}/confirmation`;
+        }, 700);
+        return;
+      }
+
+      // If Online, create Razorpay order and open checkout
+      const paymentData = await apiPost('/api/payment/create', { orderId });
+
+      const rzp = new Razorpay({
+        key: paymentData.keyId,
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        name: paymentData.hotelName,
+        description: 'Food order payment',
+        order_id: paymentData.razorpayOrderId,
+        prefill: { name: paymentData.userName, contact: paymentData.userPhone },
+        theme: { color: '#C9A24B' },
+        handler: async function (response) {
+          try {
+            const verifyData = await apiPost('/api/payment/verify', {
+              orderId,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            showPaymentSuccess(verifyData.amount, verifyData.redirect, verifyData.ownerPhone);
+          } catch (err) {
+            showToast(err.message, 'error');
+            isSubmitting = false;
+            payBtn.disabled = false;
+            payBtn.textContent = initialBtnText;
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            showToast('Payment cancelled.', 'error');
+            isSubmitting = false;
+            payBtn.disabled = false;
+            payBtn.textContent = initialBtnText;
+          },
+        },
+      });
+      rzp.on('payment.failed', function (resp) {
+        showToast('Payment failed: ' + (resp.error && resp.error.description ? resp.error.description : 'please try again.'), 'error');
+        isSubmitting = false;
+        payBtn.disabled = false;
+        payBtn.textContent = initialBtnText;
+      });
+      rzp.open();
+    } catch (err) {
+      showToast(err.message, 'error');
+      isSubmitting = false;
+      payBtn.disabled = false;
+      payBtn.textContent = initialBtnText;
+    }
+  });
+
+  function showPaymentSuccess(amount, redirectUrl, ownerPhone) {
+    const overlay = document.createElement('div');
+    overlay.className = 'pay-success-overlay';
+    overlay.innerHTML = `
+      <div class="check-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#17130F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h2>Payment Successful</h2>
+      <div class="amount">₹${amount}</div>
+    `;
+    document.body.appendChild(overlay);
+
+    setTimeout(() => {
+      if (ownerPhone) {
+        // Privacy-conscious: number is only exposed at this moment, client-side,
+        // as a tel: link the browser handles — never logged or stored client-side.
+        const telLink = document.createElement('a');
+        telLink.href = `tel:${ownerPhone}`;
+        telLink.style.display = 'none';
+        document.body.appendChild(telLink);
+        // Uncomment to auto-trigger the call prompt on mobile devices:
+        // telLink.click();
+      }
+      window.location.href = redirectUrl;
+    }, 2000);
+  }
+</script>
+</body>
+</html>

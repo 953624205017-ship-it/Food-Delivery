@@ -22,6 +22,18 @@ const userSchema = new mongoose.Schema(
       minlength: 3,
       maxlength: 40,
     },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      sparse: true,
+      index: true,
+      match: [/^\S+@\S+\.\S+$/, 'Enter a valid email address'],
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
     passwordHash: {
       type: String,
       required: true,
@@ -49,15 +61,20 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Phone number is required'],
       // Normalized Indian mobile number in +91XXXXXXXXXX form
       match: [/^\+91[6-9]\d{9}$/, 'Enter a valid Indian mobile number'],
-      unique: true,
+      index: true,
     },
     phoneVerified: {
       type: Boolean,
       default: false,
     },
+    firebaseUid: {
+      type: String,
+      sparse: true,
+      index: true,
+    },
     isActive: {
       type: Boolean,
-      default: false, // activated only after OTP verification
+      default: false, // activated only after verification
     },
     savedAddress: addressSchema,
   },

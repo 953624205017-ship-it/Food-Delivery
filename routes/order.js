@@ -8,13 +8,14 @@ const { requireAuth } = require('../middleware/auth');
 const { computeOrderTotals } = require('../utils/pricing');
 const { checkDeliveryEligibility } = require('../utils/eligibility');
 const { streamBillPdf } = require('../utils/billGenerator');
+const { getDeliveryCharge, normalizeAddress } = require('../utils/mapService');
 
 const router = express.Router();
 
 
 // ============================================================
-// AREA-BASED DELIVERY CALCULATION
-// No Google Maps / Geocoding API required
+// ADDRESS-BASED DELIVERY CALCULATION
+// Keeps the order flow deterministic without trusting the client.
 // ============================================================
 
 function calculateDeliveryByArea({
@@ -28,65 +29,38 @@ function calculateDeliveryByArea({
     street,
     village,
     pincode
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+  ].filter(Boolean);
 
-  const formattedAddress = [
-    address,
-    street,
-    village,
-    pincode
-  ]
-    .filter(Boolean)
-    .join(', ');
-
-
-  // ----------------------------------------------------------
-  // Narikulam
-  // ----------------------------------------------------------
-
-  if (fullAddress.includes('narikulam')) {
-    return {
-      area: 'Narikulam',
-      deliveryCharge: 20,
-      distanceKm: 0,
-      district: 'Virudhunagar',
-      formattedAddress
-    };
-  }
-
-
-  // ----------------------------------------------------------
-  // Alangulam
-  // ----------------------------------------------------------
-
-  if (fullAddress.includes('alangulam')) {
-    return {
-      area: 'Alangulam',
-      deliveryCharge: 30,
-      distanceKm: 0,
-      district: 'Virudhunagar',
-      formattedAddress
-    };
-  }
-
-
-  // ----------------------------------------------------------
-  // Other locations
-  // ----------------------------------------------------------
+  const normalized = normalizeAddress(fullAddress);
+  const formattedAddress = fullAddress.join(', ');
+  const delivery = getDeliveryCharge(fullAddress);
 
   return {
-    area: 'Other',
-    deliveryCharge: 60,
-    distanceKm: 0,
+    area: delivery.success ? delivery.area : 'Other',
+    deliveryCharge: delivery.success ? delivery.deliveryCharge : 60,
+    distanceKm: normalized ? 0 : 0,
     district: 'Virudhunagar',
     formattedAddress
   };
 }
 
 
+
+// ============================================================
+// SHOPPING CART PAGE
+// Multi-item cart & single checkout flow
+// ============================================================
+
+router.get(
+  '/cart',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    res.render('cart', {
+      title: 'Shopping Cart',
+      user: req.user,
+    });
+  })
+);
 
 // ============================================================
 // ORDER PAGE

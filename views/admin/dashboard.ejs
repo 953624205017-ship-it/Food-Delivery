@@ -1,23 +1,308 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><%- include('../partials/head') %></head>
+<head>
+  <%- include('../partials/head') %>
+  <style>
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .analytics-card {
+      background: var(--card-bg, #171a21);
+      border: 1px solid var(--border, #2a2f3d);
+      border-radius: 10px;
+      padding: 18px 20px;
+      position: relative;
+    }
+    .analytics-card .num {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 4px;
+    }
+    .analytics-card.gold .num { color: #d4af37; }
+    .analytics-card.green .num { color: #22c55e; }
+    .analytics-card.blue .num { color: #3b82f6; }
+    .analytics-card.orange .num { color: #f97316; }
+    .analytics-card .label {
+      font-size: 0.8rem;
+      color: #8e95a5;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .analytics-card .sub-text {
+      font-size: 0.78rem;
+      color: #6e7687;
+      margin-top: 4px;
+    }
+
+    .chart-container {
+      background: var(--card-bg, #171a21);
+      border: 1px solid var(--border, #2a2f3d);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .chart-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      height: 180px;
+      padding-top: 20px;
+      border-bottom: 1px solid #2a2f3d;
+    }
+    .chart-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+    }
+    .chart-bar {
+      width: 100%;
+      max-width: 42px;
+      background: linear-gradient(180deg, #d4af37 0%, rgba(212, 175, 55, 0.4) 100%);
+      border-radius: 4px 4px 0 0;
+      transition: height 0.4s ease;
+      min-height: 4px;
+    }
+    .chart-label {
+      font-size: 0.75rem;
+      color: #8e95a5;
+      margin-top: 8px;
+      text-align: center;
+    }
+    .chart-val {
+      font-size: 0.75rem;
+      color: #ffffff;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .section-two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 900px) {
+      .section-two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
 <body>
 <div id="toast-root"></div>
 <div class="admin-shell">
   <%- include('partials/sidebar') %>
   <div class="admin-main">
-    <h1 style="font-size:1.5rem;">Dashboard</h1>
-    <div class="stat-grid">
-      <div class="card stat-card"><div class="num"><%= stats.foodCount %></div><div class="label">Menu Items</div></div>
-      <div class="card stat-card"><div class="num"><%= stats.pendingCount %></div><div class="label">Pending Payment</div></div>
-      <div class="card stat-card"><div class="num"><%= stats.paidCount %></div><div class="label">Active Orders</div></div>
-      <div class="card stat-card"><div class="num"><%= stats.totalOrders %></div><div class="label">Total Orders</div></div>
+    <!-- Header with Date Filters -->
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+      <div>
+        <h1 style="font-size:1.6rem; margin:0;">Analytics Dashboard</h1>
+        <p style="color:var(--muted); font-size:0.85rem; margin:4px 0 0 0;">
+          Real-time metrics calculated from verified orders and payments.
+        </p>
+      </div>
+
+      <!-- Date Filter Form -->
+      <form action="/admin" method="GET" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <input type="date" name="startDate" value="<%= dateFilter.startDate %>" class="form-control" style="padding:6px 10px; font-size:0.85rem; background:#12141a; border:1px solid #2a2f3d; color:#fff; border-radius:6px;" title="Start date" />
+        <span style="color:var(--muted);">to</span>
+        <input type="date" name="endDate" value="<%= dateFilter.endDate %>" class="form-control" style="padding:6px 10px; font-size:0.85rem; background:#12141a; border:1px solid #2a2f3d; color:#fff; border-radius:6px;" title="End date" />
+        <button type="submit" class="btn btn-sm btn-gold">Filter</button>
+        <% if (dateFilter.startDate || dateFilter.endDate) { %>
+          <a href="/admin" class="btn btn-sm btn-outline">Reset</a>
+        <% } %>
+      </form>
     </div>
-    <div class="card" style="padding:22px;">
-      <p style="color:var(--muted);">Use the sidebar to manage the menu, review orders, and configure delivery zones.</p>
+
+    <!-- Analytics KPI Cards -->
+    <div class="analytics-grid">
+      <div class="analytics-card gold">
+        <div class="label">Verified Revenue</div>
+        <div class="num">₹<%= Number(stats.totalRevenue).toLocaleString('en-IN') %></div>
+        <div class="sub-text">Paid orders only (excl. unpaid/cancelled)</div>
+      </div>
+
+      <div class="analytics-card green">
+        <div class="label">Today's Sales</div>
+        <div class="num">₹<%= Number(stats.todayRevenue).toLocaleString('en-IN') %></div>
+        <div class="sub-text"><%= stats.todayOrdersCount %> order(s) placed today</div>
+      </div>
+
+      <div class="analytics-card blue">
+        <div class="label">This Month</div>
+        <div class="num">₹<%= Number(stats.monthlyRevenue).toLocaleString('en-IN') %></div>
+        <div class="sub-text"><%= stats.monthOrdersCount %> order(s) this calendar month</div>
+      </div>
+
+      <div class="analytics-card">
+        <div class="label">Total Orders</div>
+        <div class="num"><%= stats.totalOrders %></div>
+        <div class="sub-text">Lifetime order volume</div>
+      </div>
+
+      <div class="analytics-card green">
+        <div class="label">Successful Paid</div>
+        <div class="num"><%= stats.paidOrdersCount %></div>
+        <div class="sub-text">Completed / in delivery</div>
+      </div>
+
+      <div class="analytics-card orange">
+        <div class="label">Pending Payment</div>
+        <div class="num"><%= stats.pendingOrdersCount %></div>
+        <div class="sub-text">Awaiting payment or verification</div>
+      </div>
+
+      <div class="analytics-card">
+        <div class="label">Cancelled Orders</div>
+        <div class="num"><%= stats.cancelledOrdersCount %></div>
+        <div class="sub-text">Refunded or aborted</div>
+      </div>
+
+      <div class="analytics-card gold">
+        <div class="label">Customer Reviews</div>
+        <div class="num"><%= stats.totalReviewsCount %></div>
+        <div class="sub-text">Submitted customer ratings</div>
+      </div>
+    </div>
+
+    <!-- 7-Day Revenue Trend Chart -->
+    <div class="chart-container">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="margin:0; font-size:1rem; color:#ffffff;">Last 7 Days Sales Trend</h3>
+        <span style="font-size:0.8rem; color:#8e95a5;">Daily revenue from verified orders</span>
+      </div>
+
+      <div class="chart-bars">
+        <% chartDays.forEach(day => { %>
+          <% const pct = Math.round((day.sales / maxChartSales) * 100); %>
+          <div class="chart-col">
+            <div class="chart-val"><%= day.sales > 0 ? '₹' + Math.round(day.sales) : '' %></div>
+            <div class="chart-bar" style="height: <%= Math.max(4, pct) %>%;" title="<%= day.date %>: ₹<%= day.sales %> (<%= day.orders %> orders)"></div>
+            <div class="chart-label"><%= day.label %></div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <div class="section-two-col">
+      <!-- Best Selling Dishes -->
+      <div class="card" style="padding:20px;">
+        <h3 style="margin:0 0 16px 0; font-size:1.05rem;">Top 5 Best-Selling Dishes</h3>
+        <% if (!bestSellers || !bestSellers.length) { %>
+          <p style="color:var(--muted); font-size:0.9rem; margin:10px 0;">No sales data available yet.</p>
+        <% } else { %>
+          <table class="data-table" style="font-size:0.9rem;">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Dish Name</th>
+                <th style="text-align:center;">Qty Sold</th>
+                <th style="text-align:right;">Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% bestSellers.forEach((item, index) => { %>
+                <tr>
+                  <td><strong style="color:var(--gold);">#<%= index + 1 %></strong></td>
+                  <td><strong><%= item.name %></strong></td>
+                  <td style="text-align:center;"><%= item.totalQuantity %></td>
+                  <td style="text-align:right; color:var(--gold);">₹<%= Number(item.totalRevenue).toFixed(2) %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+
+      <!-- Quick Action / Menu Summary -->
+      <div class="card" style="padding:20px;">
+        <h3 style="margin:0 0 16px 0; font-size:1.05rem;">Quick Operations</h3>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <a href="/admin/orders?status=PENDING_PAYMENT" class="btn btn-outline btn-block" style="text-align:left; display:flex; justify-content:space-between;">
+            <span>Review Pending Orders</span>
+            <strong><%= stats.pendingOrdersCount %></strong>
+          </a>
+          <a href="/admin/reviews?status=approved" class="btn btn-outline btn-block" style="text-align:left; display:flex; justify-content:space-between;">
+            <span>Moderate Customer Reviews</span>
+            <strong><%= stats.totalReviewsCount %></strong>
+          </a>
+          <a href="/admin/foods" class="btn btn-outline btn-block" style="text-align:left; display:flex; justify-content:space-between;">
+            <span>Add / Edit Menu Items</span>
+            <strong><%= stats.foodCount %> Items</strong>
+          </a>
+          <a href="/admin/settings/delivery-zones" class="btn btn-outline btn-block" style="text-align:left; display:flex; justify-content:space-between;">
+            <span>Configure Delivery Fee & Zones</span>
+            <span>&rarr;</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Orders Table -->
+    <div class="card" style="padding:20px; overflow-x:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h3 style="margin:0; font-size:1.05rem;">Recent Orders</h3>
+        <a href="/admin/orders" class="btn btn-sm btn-outline">View All Orders &rarr;</a>
+      </div>
+
+      <% if (!recentOrders || !recentOrders.length) { %>
+        <p style="color:var(--muted); text-align:center; padding:20px 0; margin:0;">No orders found.</p>
+      <% } else { %>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Items</th>
+              <th>Amount</th>
+              <th>Payment</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% recentOrders.forEach(o => { %>
+              <tr>
+                <td>
+                  <strong>#<%= String(o._id).slice(-6).toUpperCase() %></strong><br/>
+                  <small style="color:var(--muted);"><%= new Date(o.createdAt).toLocaleDateString('en-IN') %></small>
+                </td>
+                <td>
+                  <%= o.user ? o.user.username : 'Guest' %><br/>
+                  <small style="color:var(--muted);"><%= o.user ? o.user.phone : '' %></small>
+                </td>
+                <td>
+                  <%= (o.items || []).map(i => `${i.name} × ${i.quantity}`).join(', ') %>
+                </td>
+                <td><strong style="color:var(--gold);">₹<%= o.totalAmount %></strong></td>
+                <td>
+                  <span style="font-size:0.8rem; text-transform:uppercase;">
+                    <%= o.payment?.provider || 'none' %>
+                  </span><br/>
+                  <small style="color:<%= o.payment?.status === 'paid' ? 'var(--success)' : 'var(--muted)' %>; font-weight:600;">
+                    <%= o.payment?.status?.toUpperCase() || 'UNPAID' %>
+                  </small>
+                </td>
+                <td>
+                  <span class="status-pill status-<%= o.status %>">
+                    <%= o.status.replace(/_/g, ' ') %>
+                  </span>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
     </div>
   </div>
 </div>
+
 <script src="/js/common.js"></script>
 </body>
 </html>

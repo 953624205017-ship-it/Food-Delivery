@@ -9,11 +9,12 @@
     "seed:admin": "node scripts/createAdmin.js"
   },
   "dependencies": {
+    "axios": "^1.20.0",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
     "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.6",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "express-async-handler": "^1.2.0",
@@ -22,6 +23,7 @@
     "express-session": "^1.18.0",
     "express-validator": "^7.2.0",
     "firebase": "^12.19.0",
+    "firebase-admin": "^14.5.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "method-override": "^3.0.0",
@@ -29,10 +31,10 @@
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^2.7.0",
+    "nodemailer": "^10.2.1",
     "pdfkit": "^0.15.0",
     "qrcode": "^1.5.4",
-    "razorpay": "^2.9.4",
-    "twilio": "^5.3.0"
+    "razorpay": "^2.9.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

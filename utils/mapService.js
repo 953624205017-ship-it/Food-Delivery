@@ -1,11 +1,18 @@
-// services/mapService.js
-
 const DELIVERY_CHARGES = {
   narikulam: 20,
   alangulam: 30,
+  other: 60,
 };
 
 function normalizeAddress(address = "") {
+  if (Array.isArray(address)) {
+    address = address.filter(Boolean).join(" ");
+  }
+
+  if (!address || typeof address !== "string") {
+    return "";
+  }
+
   return address
     .toLowerCase()
     .replace(/,/g, " ")
@@ -23,7 +30,6 @@ function getDeliveryCharge(address) {
     };
   }
 
-  // Specific areas
   if (normalized.includes("narikulam")) {
     return {
       success: true,
@@ -40,14 +46,14 @@ function getDeliveryCharge(address) {
     };
   }
 
-  // Other locations
   return {
     success: true,
     area: "Other",
-    deliveryCharge: 60,
+    deliveryCharge: DELIVERY_CHARGES.other,
   };
 }
 
 module.exports = {
+  normalizeAddress,
   getDeliveryCharge,
 };

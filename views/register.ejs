@@ -1,6 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><%- include('partials/head') %></head>
+<head>
+  <%- include('partials/head') %>
+  <style>
+    .field-hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .email-badge {
+      display: inline-block;
+      background: rgba(212, 175, 55, 0.12);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      color: var(--gold);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
 <body>
 <div id="toast-root"></div>
 <div class="auth-shell">
@@ -8,48 +27,81 @@
     <div class="eyebrow">HOTEL LITTLE JAPPAN</div>
     <h1 class="display" style="font-size:1.6rem;">Create your account</h1>
 
-    <!-- STEP 1: Details -->
+    <!-- STEP 1: Details Form -->
     <form id="registerForm">
       <div class="field">
-        <label for="username">Username</label>
-        <input type="text" id="username" name="username" required minlength="3" maxlength="40" />
+        <label for="username">Full Name / Username</label>
+        <input type="text" id="username" name="username" required minlength="3" maxlength="40" placeholder="e.g. Gowtham" />
       </div>
+
       <div class="field">
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" required minlength="6" />
+        <label for="email">Email Address</label>
+        <input type="email" id="email" name="email" required placeholder="name@example.com" autocomplete="email" />
+        <div class="field-hint">We will email a 6-digit verification code to this address.</div>
       </div>
+
       <div class="field">
         <label for="phone">Phone number</label>
-        <input type="tel" id="phone" name="phone" required placeholder="10-digit mobile number" maxlength="10" />
+        <input type="tel" id="phone" name="phone" required placeholder="10-digit mobile number" maxlength="10" autocomplete="tel" />
+        <div class="field-hint">Used for delivery updates and food order tracking.</div>
       </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required minlength="6" placeholder="At least 6 characters" autocomplete="new-password" />
+      </div>
+
       <div class="field">
         <label for="age">Age</label>
-        <input type="number" id="age" name="age" required min="1" max="120" />
+        <input type="number" id="age" name="age" required min="1" max="120" placeholder="Your age" />
       </div>
+
       <div class="field" id="dobField" style="display:none;">
         <label for="dob">Date of birth</label>
         <input type="date" id="dob" name="dob" />
       </div>
-      <button type="submit" class="btn btn-gold btn-block">Send OTP</button>
+
+      <button type="submit" id="sendOtpBtn" class="btn btn-gold btn-block" style="margin-top:16px;">
+        Send Verification Code
+      </button>
     </form>
 
-    <!-- STEP 2: OTP -->
+    <!-- STEP 2: Email OTP Form -->
     <form id="otpForm" style="display:none;">
-      <p style="text-align:center; color:var(--muted); font-size:0.9rem;">
-        Enter the 6-digit code sent to <span id="otpPhoneDisplay"></span>
-      </p>
+      <div style="text-align:center; margin-bottom: 18px;">
+        <div style="font-size: 2rem; margin-bottom: 6px;">✉️</div>
+        <p style="color:var(--muted); font-size:0.9rem; margin:0 0 8px 0;">
+          We sent a 6-digit verification code to:
+        </p>
+        <div class="email-badge" id="otpEmailDisplay"></div>
+        <p style="color:var(--muted); font-size:0.8rem; margin: 8px 0 0 0;">
+          Code expires in <strong>5 minutes</strong>. Check your inbox or spam folder.
+        </p>
+      </div>
+
       <div class="otp-inputs">
-        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" autocomplete="one-time-code" />
         <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
         <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
         <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
         <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
         <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
       </div>
-      <button type="submit" class="btn btn-gold btn-block">Verify & Create Account</button>
-      <div class="resend-row">
-        Didn't get it? <button type="button" id="resendBtn" disabled>Resend OTP</button>
+
+      <button type="submit" id="verifyOtpBtn" class="btn btn-gold btn-block" style="margin-top:16px;">
+        Verify & Create Account
+      </button>
+
+      <div class="resend-row" style="margin-top:16px;">
+        Didn't receive the code?
+        <button type="button" id="resendBtn" disabled>Resend Code</button>
         <span id="resendTimer"></span>
+      </div>
+
+      <div style="text-align:center; margin-top: 14px;">
+        <button type="button" id="changeDetailsBtn" style="background:none; border:none; color:var(--muted); font-size:0.85rem; cursor:pointer; text-decoration:underline;">
+          ← Change email or registration details
+        </button>
       </div>
     </form>
 
@@ -62,6 +114,7 @@
   const ageInput = document.getElementById('age');
   const dobField = document.getElementById('dobField');
   const dobInput = document.getElementById('dob');
+
   ageInput.addEventListener('input', () => {
     const isAdult = Number(ageInput.value) >= 18;
     dobField.style.display = isAdult ? 'block' : 'none';
@@ -73,7 +126,10 @@
   const otpDigits = [...document.querySelectorAll('.otp-digit')];
   const resendBtn = document.getElementById('resendBtn');
   const resendTimer = document.getElementById('resendTimer');
+  const changeDetailsBtn = document.getElementById('changeDetailsBtn');
+
   let cooldownInterval;
+  let currentEmail = '';
 
   function startCooldown(seconds) {
     resendBtn.disabled = true;
@@ -92,68 +148,118 @@
     }, 1000);
   }
 
+  // Handle digit auto-focusing
   otpDigits.forEach((input, idx) => {
-    input.addEventListener('input', () => {
+    input.addEventListener('input', (e) => {
       input.value = input.value.replace(/\D/g, '');
-      if (input.value && idx < otpDigits.length - 1) otpDigits[idx + 1].focus();
+      if (input.value && idx < otpDigits.length - 1) {
+        otpDigits[idx + 1].focus();
+      }
     });
+
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Backspace' && !input.value && idx > 0) otpDigits[idx - 1].focus();
+      if (e.key === 'Backspace' && !input.value && idx > 0) {
+        otpDigits[idx - 1].focus();
+      }
+    });
+
+    // Handle paste of 6-digit code
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+      if (pasted.length) {
+        pasted.split('').forEach((char, i) => {
+          if (otpDigits[i]) otpDigits[i].value = char;
+        });
+        const nextIdx = Math.min(pasted.length, otpDigits.length - 1);
+        otpDigits[nextIdx].focus();
+      }
     });
   });
 
+  // STEP 1: Submit Details & Send Email OTP
   registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = registerForm.querySelector('button');
+    const btn = document.getElementById('sendOtpBtn');
     btn.disabled = true;
-    btn.textContent = 'Sending OTP...';
+    btn.textContent = 'Sending verification code...';
+
+    const rawEmail = document.getElementById('email').value.trim();
+    currentEmail = rawEmail;
+
+    const payload = {
+      username: document.getElementById('username').value.trim(),
+      email: rawEmail,
+      phone: document.getElementById('phone').value.trim(),
+      password: document.getElementById('password').value,
+      age: ageInput.value,
+      dob: dobInput.value || undefined,
+    };
+
     try {
-      const payload = {
-        username: document.getElementById('username').value,
-        password: document.getElementById('password').value,
-        phone: document.getElementById('phone').value,
-        age: ageInput.value,
-        dob: dobInput.value || undefined,
-      };
       const data = await apiPost('/api/auth/register/start', payload);
-      document.getElementById('otpPhoneDisplay').textContent = data.phone;
+
+      document.getElementById('otpEmailDisplay').textContent = data.email || rawEmail;
       registerForm.style.display = 'none';
       otpForm.style.display = 'block';
+      otpDigits.forEach((i) => (i.value = ''));
       otpDigits[0].focus();
+
       startCooldown(data.resendAvailableInSeconds || 60);
-      showToast('OTP sent!', 'success');
+      showToast(data.message || 'Verification code sent to your email!', 'success');
     } catch (err) {
-      showToast(err.message, 'error');
+      showToast(err.message || 'Failed to send verification code.', 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Send OTP';
+      btn.textContent = 'Send Verification Code';
     }
   });
 
+  // Resend Email OTP
   resendBtn.addEventListener('click', async () => {
     try {
-      const data = await apiPost('/api/auth/register/resend-otp');
+      resendBtn.disabled = true;
+      showToast('Sending a new code to your email...', 'default');
+      const data = await apiPost('/api/auth/register/resend-otp', { email: currentEmail });
       startCooldown(data.resendAvailableInSeconds || 60);
-      showToast('OTP resent!', 'success');
+      showToast(data.message || 'A new code has been sent!', 'success');
+      otpDigits.forEach((i) => (i.value = ''));
+      otpDigits[0].focus();
     } catch (err) {
-      showToast(err.message, 'error');
-      if (err.data && err.data.retryAfterSeconds) startCooldown(err.data.retryAfterSeconds);
+      showToast(err.message || 'Failed to resend code.', 'error');
+      resendBtn.disabled = false;
     }
   });
 
+  // Return to editing registration form
+  changeDetailsBtn.addEventListener('click', () => {
+    otpForm.style.display = 'none';
+    registerForm.style.display = 'block';
+    otpDigits.forEach((i) => (i.value = ''));
+    clearInterval(cooldownInterval);
+    resendTimer.textContent = '';
+  });
+
+  // STEP 2: Verify Email OTP & Finalize Account Registration
   otpForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const code = otpDigits.map((i) => i.value).join('');
-    if (code.length !== 6) return showToast('Enter the full 6-digit code.', 'error');
-    const btn = otpForm.querySelector('button[type="submit"]');
+    if (code.length !== 6) {
+      return showToast('Please enter the full 6-digit code.', 'error');
+    }
+
+    const btn = document.getElementById('verifyOtpBtn');
     btn.disabled = true;
-    btn.textContent = 'Verifying...';
+    btn.textContent = 'Verifying code...';
+
     try {
-      const data = await apiPost('/api/auth/register/verify-otp', { code });
-      showToast('Account created!', 'success');
-      window.location.href = data.redirect || '/dashboard';
+      const data = await apiPost('/api/auth/register/verify-email', { code });
+      showToast(data.message || 'Account created successfully!', 'success');
+      setTimeout(() => {
+        window.location.href = data.redirect || '/dashboard';
+      }, 500);
     } catch (err) {
-      showToast(err.message, 'error');
+      showToast(err.message || 'Verification failed.', 'error');
       otpDigits.forEach((i) => (i.value = ''));
       otpDigits[0].focus();
     } finally {

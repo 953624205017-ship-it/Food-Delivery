@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('../partials/head') %></head>
+<body>
+<div id="toast-root"></div>
+<div class="admin-shell">
+  <%- include('partials/sidebar') %>
+  <div class="admin-main">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h1 style="font-size:1.5rem; margin:0;">Customer Reviews</h1>
+    </div>
+
+    <!-- Filter Pills -->
+    <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+      <a href="/admin/reviews" class="btn btn-sm <%= statusFilter === 'all' ? 'btn-gold' : 'btn-outline' %>">All Reviews</a>
+      <a href="/admin/reviews?status=approved" class="btn btn-sm <%= statusFilter === 'approved' ? 'btn-gold' : 'btn-outline' %>">Approved</a>
+      <a href="/admin/reviews?status=hidden" class="btn btn-sm <%= statusFilter === 'hidden' ? 'btn-gold' : 'btn-outline' %>">Hidden</a>
+    </div>
+
+    <div class="card" style="overflow-x:auto;">
+      <% if (!reviews.length) { %>
+        <p style="padding:30px; text-align:center; color:var(--muted); margin:0;">
+          No customer reviews found.
+        </p>
+      <% } else { %>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Food Item</th>
+              <th>Customer</th>
+              <th>Rating</th>
+              <th>Comment</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% reviews.forEach(r => { %>
+              <tr data-id="<%= r._id %>">
+                <td>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <img src="<%= r.food ? r.food.image : '/images/food-placeholder.svg' %>" alt="" style="width:36px; height:36px; object-fit:cover; border-radius:4px;" />
+                    <strong><%= r.food ? r.food.name : 'Unknown Item' %></strong>
+                  </div>
+                </td>
+                <td>
+                  <%= r.user ? r.user.username : 'Anonymous' %>
+                  <% if (r.user && r.user.email) { %>
+                    <br/><small style="color:var(--muted);"><%= r.user.email %></small>
+                  <% } %>
+                </td>
+                <td>
+                  <span style="color:#f59e0b; font-weight:700;">
+                    <%= '★'.repeat(r.rating) %><%= '☆'.repeat(5 - r.rating) %>
+                  </span>
+                  <small style="color:var(--muted);"> (<%= r.rating %>/5)</small>
+                </td>
+                <td style="max-width:240px; word-break:break-word;">
+                  <%= r.comment || '<em style="color:var(--muted);">No comment</em>' %>
+                </td>
+                <td>
+                  <small style="color:var(--muted);"><%= new Date(r.createdAt).toLocaleDateString('en-IN') %></small>
+                </td>
+                <td>
+                  <span class="status-pill status-<%= r.status === 'approved' ? 'PAID' : 'CANCELLED' %>">
+                    <%= r.status.toUpperCase() %>
+                  </span>
+                </td>
+                <td>
+                  <div style="display:flex; gap:6px;">
+                    <% if (r.status === 'approved') { %>
+                      <button type="button" class="btn btn-sm btn-outline toggle-status-btn" data-status="hidden" style="padding:3px 8px; font-size:0.75rem;">
+                        Hide
+                      </button>
+                    <% } else { %>
+                      <button type="button" class="btn btn-sm btn-gold toggle-status-btn" data-status="approved" style="padding:3px 8px; font-size:0.75rem;">
+                        Approve
+                      </button>
+                    <% } %>
+                    <button type="button" class="btn btn-sm delete-review-btn" style="padding:3px 8px; font-size:0.75rem; color:#ef4444; background:none; border:1px solid #ef4444;">
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+  document.querySelectorAll('.toggle-status-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('tr');
+      const id = row.dataset.id;
+      const newStatus = btn.dataset.status;
+      try {
+        await apiPatch(`/api/admin/reviews/${id}/status`, { status: newStatus });
+        showToast(`Review marked as ${newStatus}!`, 'success');
+        setTimeout(() => location.reload(), 400);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+
+  document.querySelectorAll('.delete-review-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to delete this review?')) return;
+      const row = btn.closest('tr');
+      const id = row.dataset.id;
+      try {
+        const res = await fetch(`/api/admin/reviews/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          row.remove();
+          showToast('Review deleted!', 'success');
+        } else {
+          showToast(data.message || 'Failed to delete review.', 'error');
+        }
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+
+  async function apiPatch(url, body) {
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Request failed');
+    return data;
+  }
+</script>
+</body>
+</html>
+

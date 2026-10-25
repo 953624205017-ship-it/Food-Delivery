@@ -386,3 +386,223 @@ table.data-table th { color: var(--muted); font-weight: 600; font-size: 0.78rem;
   .admin-sidebar { display: flex; overflow-x: auto; gap: 6px; padding: 12px; }
   .admin-sidebar .brand { display: none; }
 }
+
+/* ---------- Food Search & Filters ---------- */
+.filter-card {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  margin: -30px auto 30px;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 8px 30px rgba(36,29,20,0.08);
+  border: 1px solid rgba(201,162,75,0.25);
+}
+.filter-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.2fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.filter-search-box {
+  position: relative;
+}
+.filter-search-box input {
+  width: 100%;
+  padding: 10px 14px 10px 36px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(36,29,20,0.15);
+  font-size: 0.92rem;
+  background: var(--cream);
+  color: var(--ink);
+  outline: none;
+}
+.filter-search-box input:focus {
+  border-color: var(--gold);
+}
+.filter-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.filter-select, .filter-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(36,29,20,0.15);
+  background: var(--cream);
+  font-size: 0.88rem;
+  color: var(--ink);
+  outline: none;
+}
+.filter-select:focus, .filter-input:focus {
+  border-color: var(--gold);
+}
+.filter-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(36,29,20,0.12);
+  align-items: center;
+}
+.filter-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(36,29,20,0.15);
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  text-decoration: none;
+}
+.filter-pill:hover, .filter-pill.active {
+  background: var(--gold);
+  color: var(--charcoal);
+  border-color: var(--gold);
+}
+.filter-reset-link {
+  color: var(--danger);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: underline;
+  margin-left: auto;
+  cursor: pointer;
+}
+
+/* ---------- Food Card Enhancements ---------- */
+.veg-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.veg-tag.veg {
+  background: rgba(63, 143, 95, 0.12);
+  color: #246f43;
+  border: 1px solid #3f8f5f;
+}
+.veg-tag.non-veg {
+  background: rgba(177, 75, 62, 0.12);
+  color: #8f2d22;
+  border: 1px solid #b14b3e;
+}
+.rating-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(201,162,75,0.16);
+  color: #7d5e16;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid rgba(201,162,75,0.3);
+}
+.rating-pill:hover {
+  background: var(--gold);
+  color: var(--charcoal);
+}
+
+.food-card .action-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+.btn-cart {
+  background: var(--charcoal);
+  color: var(--gold-light);
+  font-size: 0.86rem;
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--gold);
+}
+.btn-cart:hover {
+  background: #2b2219;
+  color: #fff;
+}
+
+/* ---------- Review Modal ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(23,19,15,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  backdrop-filter: blur(3px);
+}
+.modal-box {
+  background: #fff;
+  border-radius: var(--radius);
+  max-width: 540px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  border: 1.5px solid var(--gold);
+  position: relative;
+  padding: 24px;
+}
+.modal-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.star-rating-select {
+  display: flex;
+  gap: 8px;
+  font-size: 1.7rem;
+  cursor: pointer;
+  margin: 8px 0;
+}
+.star-rating-select span {
+  color: #d1c7b7;
+  transition: color .15s;
+}
+.star-rating-select span.active, .star-rating-select span:hover {
+  color: #e5a919;
+}
+.review-item {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(36,29,20,0.08);
+}
+.review-item:last-child {
+  border-bottom: none;
+}
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 768px) {
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+  .filter-card {
+    margin: -10px 10px 20px;
+    padding: 16px;
+  }
+}

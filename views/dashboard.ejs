@@ -12,14 +12,119 @@
 </section>
 
 <div class="container">
+  <!-- SEARCH AND FILTERS BAR -->
+  <div class="filter-card">
+    <form id="filterForm" method="GET" action="/dashboard">
+      <div class="filter-grid">
+        <!-- Search Query -->
+        <div class="filter-search-box">
+          <span class="filter-search-icon">🔍</span>
+          <input
+            type="text"
+            name="search"
+            value="<%= activeFilters.search || '' %>"
+            placeholder="Search dish, ingredients, category..."
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Veg / Non-Veg -->
+        <div>
+          <select name="veg" class="filter-select" onchange="this.form.submit()">
+            <option value="all" <%= activeFilters.veg === 'all' ? 'selected' : '' %>>All Types</option>
+            <option value="veg" <%= activeFilters.veg === 'veg' ? 'selected' : '' %>>🌱 Pure Veg</option>
+            <option value="non-veg" <%= activeFilters.veg === 'non-veg' ? 'selected' : '' %>>🍗 Non-Veg</option>
+          </select>
+        </div>
+
+        <!-- Sort By -->
+        <div>
+          <select name="sortBy" class="filter-select" onchange="this.form.submit()">
+            <option value="featured" <%= activeFilters.sortBy === 'featured' ? 'selected' : '' %>>✨ Featured</option>
+            <option value="price_asc" <%= activeFilters.sortBy === 'price_asc' ? 'selected' : '' %>>₹ Price: Low to High</option>
+            <option value="price_desc" <%= activeFilters.sortBy === 'price_desc' ? 'selected' : '' %>>₹ Price: High to Low</option>
+            <option value="rating" <%= activeFilters.sortBy === 'rating' ? 'selected' : '' %>>⭐ Highest Rated</option>
+            <option value="popularity" <%= activeFilters.sortBy === 'popularity' ? 'selected' : '' %>>🔥 Most Popular</option>
+          </select>
+        </div>
+
+        <!-- Price Range -->
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input
+            type="number"
+            name="minPrice"
+            class="filter-input"
+            placeholder="Min ₹"
+            value="<%= activeFilters.minPrice || '' %>"
+            min="0"
+            style="width: 50%;"
+          />
+          <span style="color:var(--muted); font-size:0.8rem;">–</span>
+          <input
+            type="number"
+            name="maxPrice"
+            class="filter-input"
+            placeholder="Max ₹"
+            value="<%= activeFilters.maxPrice || '' %>"
+            min="0"
+            style="width: 50%;"
+          />
+        </div>
+
+        <!-- Filter Submit Button -->
+        <div>
+          <button type="submit" class="btn btn-gold" style="padding:10px 18px; font-size:0.88rem;">Filter</button>
+        </div>
+      </div>
+
+      <!-- Category Filter Pills & Reset -->
+      <div class="filter-pills-row">
+        <span style="font-size:0.82rem; font-weight:700; color:var(--muted); margin-right:4px;">Category:</span>
+        <a
+          href="/dashboard?<%= new URLSearchParams({ ...activeFilters, category: 'All' }).toString() %>"
+          class="filter-pill <%= (!activeFilters.category || activeFilters.category === 'All') ? 'active' : '' %>"
+        >
+          All
+        </a>
+        <% (categories || []).forEach(cat => { %>
+          <a
+            href="/dashboard?<%= new URLSearchParams({ ...activeFilters, category: cat }).toString() %>"
+            class="filter-pill <%= activeFilters.category === cat ? 'active' : '' %>"
+          >
+            <%= cat %>
+          </a>
+        <% }) %>
+
+        <% if (activeFilters.search || (activeFilters.category && activeFilters.category !== 'All') || (activeFilters.veg && activeFilters.veg !== 'all') || activeFilters.minPrice || activeFilters.maxPrice || (activeFilters.sortBy && activeFilters.sortBy !== 'featured')) { %>
+          <a href="/dashboard" class="filter-reset-link">Reset all filters</a>
+        <% } %>
+      </div>
+    </form>
+  </div>
+
+  <!-- FOOD GRID OR NO MATCHES -->
   <% if (!foods.length) { %>
-    <p style="padding:40px 0; color:var(--muted);">No items on the menu right now — please check back soon.</p>
+    <div style="text-align:center; padding:60px 20px; background:#fff; border-radius:var(--radius); border:1px dashed var(--muted); margin-bottom:50px;">
+      <div style="font-size:2.8rem; margin-bottom:12px;">🍽️</div>
+      <h3 style="margin-bottom:6px;">No dishes found</h3>
+      <p style="color:var(--muted); max-width:440px; margin:0 auto 18px;">
+        We couldn't find any menu items matching your criteria. Try adjusting your search keyword, category, or price filters.
+      </p>
+      <a href="/dashboard" class="btn btn-gold">View Entire Menu</a>
+    </div>
   <% } else { %>
-    <div class="food-grid">
+    <div class="food-grid" style="margin-bottom:60px;">
       <% foods.forEach(food => { %>
-        <div class="card food-card" data-food-id="<%= food._id %>" data-price="<%= food.price %>">
+        <div class="card food-card" data-food-id="<%= food._id %>" data-price="<%= food.price %>" data-name="<%= food.name %>" data-image="<%= food.image %>">
           <div class="img-wrap">
             <img src="<%= food.image %>" alt="<%= food.name %>" loading="lazy" />
+            <div style="position:absolute; top:12px; left:12px; display:flex; gap:6px; flex-wrap:wrap;">
+              <% if (food.isVeg) { %>
+                <span class="veg-tag veg">🟢 Veg</span>
+              <% } else { %>
+                <span class="veg-tag non-veg">🔴 Non-Veg</span>
+              <% } %>
+            </div>
             <% if (food.available) { %>
               <span class="badge">Available</span>
             <% } else { %>
@@ -27,18 +132,64 @@
             <% } %>
           </div>
           <div class="body">
-            <h3><%= food.name %></h3>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+              <h3 style="margin:0;"><%= food.name %></h3>
+              <button
+                type="button"
+                class="rating-pill open-reviews-btn"
+                data-id="<%= food._id %>"
+                data-name="<%= food.name %>"
+                title="View customer reviews"
+              >
+                ★ <%= (food.rating && food.rating > 0) ? food.rating.toFixed(1) : 'New' %>
+                <span style="opacity:0.8; font-weight:normal;">(<%= food.totalReviews || 0 %>)</span>
+              </button>
+            </div>
             <div class="desc"><%= food.description || '' %></div>
             <div class="price">₹<%= food.price %></div>
+
             <% if (food.available) { %>
+              <!-- Quantity selector -->
               <div class="qty-row">
                 <button class="qty-btn qty-minus" type="button">−</button>
                 <span class="qty-value">1</span>
                 <button class="qty-btn qty-plus" type="button">+</button>
               </div>
-              <button class="btn btn-gold btn-block buy-now-btn" type="button">Buy Now</button>
+
+              <!-- Cart & Buy Now Buttons -->
+              <div class="action-buttons">
+                <button class="btn btn-cart add-cart-btn" type="button" title="Add to Cart">
+                  🛒 + Cart
+                </button>
+                <button class="btn btn-gold buy-now-btn" type="button" style="padding:9px 12px; font-size:0.86rem;">
+                  ⚡ Buy Now
+                </button>
+              </div>
+
+              <!-- Review status indicator if eligible -->
+              <% const isEligible = typeof eligibleFoodIds !== 'undefined' && eligibleFoodIds.has(String(food._id)); %>
+              <% const isReviewed = typeof reviewedFoodIds !== 'undefined' && reviewedFoodIds.has(String(food._id)); %>
+              <% if (isEligible) { %>
+                <div style="margin-top:8px; text-align:center;">
+                  <% if (isReviewed) { %>
+                    <span style="font-size:0.75rem; color:var(--success); font-weight:600;">✓ You reviewed this dish</span>
+                  <% } else { %>
+                    <button
+                      type="button"
+                      class="open-reviews-btn"
+                      data-id="<%= food._id %>"
+                      data-name="<%= food.name %>"
+                      data-eligible="true"
+                      style="background:none; border:none; color:var(--gold); font-size:0.78rem; text-decoration:underline; cursor:pointer; font-weight:600;"
+                    >
+                      ★ Leave a Review
+                    </button>
+                  <% } %>
+                </div>
+              <% } %>
+
             <% } else { %>
-              <button class="btn btn-outline btn-block" disabled>SOLD OUT</button>
+              <button class="btn btn-outline btn-block" disabled style="margin-top:10px;">SOLD OUT</button>
             <% } %>
           </div>
         </div>
@@ -47,27 +198,231 @@
   <% } %>
 </div>
 
+<!-- REVIEWS & RATING MODAL -->
+<div id="reviewModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <button type="button" class="modal-close-btn" id="closeReviewModal">&times;</button>
+    <h3 id="modalFoodName" style="margin-bottom:4px;">Dish Reviews</h3>
+    <div id="modalRatingOverview" style="font-size:0.9rem; color:var(--muted); margin-bottom:16px;"></div>
+
+    <!-- Review Form Section (Visible if user ordered dish and hasn't reviewed yet) -->
+    <div id="writeReviewSection" style="display:none; background:rgba(201,162,75,0.08); padding:16px; border-radius:10px; margin-bottom:20px; border:1px solid rgba(201,162,75,0.3);">
+      <h4 style="margin:0 0 8px 0; font-size:0.95rem; color:var(--charcoal);">Rate this dish</h4>
+      <form id="submitReviewForm">
+        <input type="hidden" id="reviewFoodId" value="" />
+        <div class="star-rating-select" id="starPicker">
+          <span data-star="1">★</span>
+          <span data-star="2">★</span>
+          <span data-star="3">★</span>
+          <span data-star="4">★</span>
+          <span data-star="5">★</span>
+        </div>
+        <input type="hidden" id="selectedRating" value="5" />
+        <div style="margin-bottom:10px;">
+          <textarea
+            id="reviewComment"
+            rows="2"
+            maxlength="500"
+            placeholder="Write a comment about taste, portion, spice level... (optional)"
+            style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(36,29,20,0.2); font-family:inherit; font-size:0.88rem; outline:none;"
+          ></textarea>
+        </div>
+        <button type="submit" id="saveReviewBtn" class="btn btn-gold" style="padding:8px 18px; font-size:0.85rem;">
+          Submit Review
+        </button>
+      </form>
+    </div>
+
+    <!-- Ineligibility / Already reviewed note -->
+    <div id="reviewNotice" style="display:none; margin-bottom:16px; font-size:0.85rem; color:var(--muted);"></div>
+
+    <!-- Reviews List -->
+    <h4 style="margin:0 0 10px 0; font-size:0.95rem; border-bottom:1px solid rgba(36,29,20,0.1); padding-bottom:6px;">
+      Customer Reviews
+    </h4>
+    <div id="reviewsList" style="max-height:260px; overflow-y:auto;">
+      <p style="color:var(--muted); font-size:0.88rem;">Loading reviews...</p>
+    </div>
+  </div>
+</div>
+
 <script src="/js/common.js"></script>
 <script>
+  // 1. Food Card Quantity & Add to Cart / Buy Now
   document.querySelectorAll('.food-card').forEach((card) => {
     const qtyValue = card.querySelector('.qty-value');
     const minus = card.querySelector('.qty-minus');
     const plus = card.querySelector('.qty-plus');
+    const addCartBtn = card.querySelector('.add-cart-btn');
     const buyBtn = card.querySelector('.buy-now-btn');
 
-    if (minus) minus.addEventListener('click', () => {
-      const v = Math.max(1, parseInt(qtyValue.textContent, 10) - 1);
-      qtyValue.textContent = v;
+    if (minus) {
+      minus.addEventListener('click', () => {
+        const v = Math.max(1, parseInt(qtyValue.textContent, 10) - 1);
+        qtyValue.textContent = v;
+      });
+    }
+    if (plus) {
+      plus.addEventListener('click', () => {
+        const v = Math.min(50, parseInt(qtyValue.textContent, 10) + 1);
+        qtyValue.textContent = v;
+      });
+    }
+    if (addCartBtn) {
+      addCartBtn.addEventListener('click', () => {
+        const foodId = card.dataset.foodId;
+        const qty = parseInt(qtyValue.textContent, 10) || 1;
+        const name = card.dataset.name;
+        const price = parseFloat(card.dataset.price);
+        const image = card.dataset.image;
+
+        if (window.HLJCart) {
+          window.HLJCart.addToCart(foodId, qty, { name, price, image });
+        }
+      });
+    }
+    if (buyBtn) {
+      buyBtn.addEventListener('click', () => {
+        const foodId = card.dataset.foodId;
+        const qty = qtyValue.textContent;
+        window.location.href = `/order?foodId=${foodId}&qty=${qty}`;
+      });
+    }
+  });
+
+  // 2. Reviews Modal Logic
+  const reviewModal = document.getElementById('reviewModal');
+  const closeReviewModal = document.getElementById('closeReviewModal');
+  const modalFoodName = document.getElementById('modalFoodName');
+  const modalRatingOverview = document.getElementById('modalRatingOverview');
+  const reviewsList = document.getElementById('reviewsList');
+  const writeReviewSection = document.getElementById('writeReviewSection');
+  const reviewNotice = document.getElementById('reviewNotice');
+  const reviewFoodId = document.getElementById('reviewFoodId');
+  const starPicker = document.getElementById('starPicker');
+  const selectedRating = document.getElementById('selectedRating');
+  const submitReviewForm = document.getElementById('submitReviewForm');
+
+  // Star Rating Interaction
+  function updateStarDisplay(val) {
+    selectedRating.value = val;
+    starPicker.querySelectorAll('span').forEach((s) => {
+      const starNum = parseInt(s.dataset.star, 10);
+      s.classList.toggle('active', starNum <= val);
     });
-    if (plus) plus.addEventListener('click', () => {
-      const v = Math.min(50, parseInt(qtyValue.textContent, 10) + 1);
-      qtyValue.textContent = v;
+  }
+  updateStarDisplay(5);
+
+  starPicker.querySelectorAll('span').forEach((s) => {
+    s.addEventListener('click', () => {
+      updateStarDisplay(parseInt(s.dataset.star, 10));
     });
-    if (buyBtn) buyBtn.addEventListener('click', () => {
-      const foodId = card.dataset.foodId;
-      const qty = qtyValue.textContent;
-      window.location.href = `/order?foodId=${foodId}&qty=${qty}`;
+  });
+
+  async function openReviews(foodId, foodName, autoOpenWrite = false) {
+    modalFoodName.textContent = foodName;
+    reviewFoodId.value = foodId;
+    modalRatingOverview.textContent = 'Loading reviews...';
+    reviewsList.innerHTML = '<p style="color:var(--muted); font-size:0.88rem;">Loading reviews...</p>';
+    reviewModal.style.display = 'flex';
+
+    try {
+      const res = await fetch(`/api/foods/${foodId}/reviews`);
+      const data = await res.json();
+
+      if (!data.success) {
+        reviewsList.innerHTML = `<p style="color:var(--danger);">${data.message || 'Could not load reviews.'}</p>`;
+        return;
+      }
+
+      modalRatingOverview.textContent = `★ ${data.averageRating ? data.averageRating.toFixed(1) : 'New'} (${data.totalReviews} ${data.totalReviews === 1 ? 'review' : 'reviews'})`;
+
+      if (data.canReview) {
+        writeReviewSection.style.display = 'block';
+        reviewNotice.style.display = 'none';
+        updateStarDisplay(5);
+        document.getElementById('reviewComment').value = '';
+      } else {
+        writeReviewSection.style.display = 'none';
+        reviewNotice.style.display = 'block';
+        if (data.alreadyReviewed) {
+          reviewNotice.textContent = '✓ You have already reviewed this dish. Thank you!';
+        } else {
+          reviewNotice.textContent = '💡 Customers who order and receive this dish can leave a verified review.';
+        }
+      }
+
+      if (!data.reviews || data.reviews.length === 0) {
+        reviewsList.innerHTML = '<p style="color:var(--muted); font-size:0.88rem; font-style:italic;">No reviews yet. Be the first to review after ordering!</p>';
+      } else {
+        reviewsList.innerHTML = data.reviews.map((r) => {
+          const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+          const author = (r.user && r.user.username) ? r.user.username : 'Customer';
+          const dateStr = new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+          return `
+            <div class="review-item">
+              <div class="review-header">
+                <strong>${escapeHtml(author)}</strong>
+                <span style="color:#e5a919; font-size:1rem; letter-spacing:1px;">${stars}</span>
+              </div>
+              ${r.comment ? `<p style="margin:2px 0 4px; font-size:0.86rem; color:var(--ink);">${escapeHtml(r.comment)}</p>` : ''}
+              <div style="font-size:0.75rem; color:var(--muted);">${dateStr} · Verified Order</div>
+            </div>
+          `;
+        }).join('');
+      }
+    } catch (err) {
+      reviewsList.innerHTML = `<p style="color:var(--danger);">Error loading reviews: ${err.message}</p>`;
+    }
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  }
+
+  document.querySelectorAll('.open-reviews-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openReviews(btn.dataset.id, btn.dataset.name, btn.dataset.eligible === 'true');
     });
+  });
+
+  closeReviewModal.addEventListener('click', () => {
+    reviewModal.style.display = 'none';
+  });
+
+  window.addEventListener('click', (e) => {
+    if (e.target === reviewModal) {
+      reviewModal.style.display = 'none';
+    }
+  });
+
+  // Submit review form
+  submitReviewForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const foodId = reviewFoodId.value;
+    const rating = parseInt(selectedRating.value, 10);
+    const comment = document.getElementById('reviewComment').value.trim();
+    const btn = document.getElementById('saveReviewBtn');
+
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    try {
+      const data = await apiPost(`/api/foods/${foodId}/reviews`, { rating, comment });
+      showToast('Thank you! Your review has been submitted.', 'success');
+      writeReviewSection.style.display = 'none';
+      reviewNotice.style.display = 'block';
+      reviewNotice.textContent = '✓ You have already reviewed this dish. Thank you!';
+      // Reload reviews
+      openReviews(foodId, modalFoodName.textContent);
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Submit Review';
+    }
   });
 </script>
 </body>

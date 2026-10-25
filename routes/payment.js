@@ -5,6 +5,7 @@ const QRCode = require('qrcode');
 const Order = require('../models/Order');
 const { requireAuth } = require('../middleware/auth');
 const { createPaymentOrder, verifyPaymentSignature } = require('../utils/paymentService');
+const { sendOrderNotificationEmail } = require('../utils/emailService');
 
 const router = express.Router();
 
@@ -86,6 +87,9 @@ router.post(
     order.ownerNotified = true;
 
     await order.save();
+
+    // Send order confirmation email asynchronously
+    sendOrderNotificationEmail({ order, user: req.user, type: 'ORDER_PLACED' }).catch(() => {});
 
     res.json({
       success: true,
@@ -185,6 +189,14 @@ router.post(
 
     await order.save();
 
+    // Send order confirmation email asynchronously
+    sendOrderNotificationEmail({
+      order,
+      user: req.user,
+      type: 'ORDER_PLACED',
+      customMessage: 'We received your UPI payment confirmation request. Our kitchen will verify and start preparing your meal.'
+    }).catch(() => {});
+
     res.json({
       success: true,
       orderId: String(order._id),
@@ -242,6 +254,9 @@ router.post(
       // would also push this via SMS/WhatsApp/websocket to the admin panel.
       order.ownerNotified = true;
       await order.save();
+
+      // Send payment confirmation email asynchronously
+      sendOrderNotificationEmail({ order, user: req.user, type: 'PAYMENT_CONFIRMED' }).catch(() => {});
     }
 
     res.json({

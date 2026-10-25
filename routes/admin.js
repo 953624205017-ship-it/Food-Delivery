@@ -17,31 +17,33 @@ const { sendOrderNotificationEmail } = require('../utils/emailService');
 const router = express.Router();
 
 // ---------- Image upload config ----------
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, '..', 'uploads')),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`),
-});
+
+const cloudinary = require('../config/cloudinary');
+const storage = multer.memoryStorage();
+
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const ok = /jpeg|jpg|png|webp/.test(path.extname(file.originalname).toLowerCase());
+    const ok = /\.(jpe?g|png|webp)$/i.test(file.originalname);
     cb(ok ? null : new Error('Only JPG, PNG, or WEBP images are allowed.'), ok);
   },
 });
 
-function issueAdminToken(res, admin) {
-  const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, {
-    expiresIn: '12h',
-    audience: 'admin',
-  });
-  res.cookie('admin_token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 12 * 60 * 60 * 1000,
+function uploadImageToCloudinary(file) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: 'hotel-little-jappan/foods', resource_type: 'image' },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result.secure_url);
+      }
+    );
+    stream.end(file.buffer);
   });
 }
+
+
 
 // ---------- Admin auth ----------
 router.get('/admin/login', (req, res) => res.render('admin/login', { title: 'Admin Login' }));
@@ -238,7 +240,7 @@ router.post(
       category: category || 'General',
       isVeg: isVeg === 'true' || isVeg === true,
       price: Number(price),
-      image: req.file ? `/uploads/${req.file.filename}` : undefined,
+      image: req.file ? await uploadImageToCloudinary(req.file) : undefined,
       createdBy: req.admin._id,
     });
     res.json({ success: true, food });
@@ -260,7 +262,7 @@ router.put(
     if (price !== undefined) food.price = Number(price);
     if (available !== undefined) food.available = available === 'true' || available === true;
     if (isVeg !== undefined) food.isVeg = isVeg === 'true' || isVeg === true;
-    if (req.file) food.image = `/uploads/${req.file.filename}`;
+    if (req.file) food.image = await uploadImageToCloudinary(req.file);
 
     await food.save();
     res.json({ success: true, food });

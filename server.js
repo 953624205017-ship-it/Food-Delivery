@@ -14,7 +14,7 @@ const connectDB = require('./config/db');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { attachUserIfPresent } = require('./middleware/auth');
 
-const { firebaseWebConfig } = require('./config/firebase');
+
 const authRoutes = require('./routes/auth');
 const foodRoutes = require('./routes/food');
 const orderRoutes = require('./routes/order');
@@ -63,53 +63,30 @@ app.use((req, res, next) => {
   res.locals.ownerName = process.env.OWNER_NAME || 'Ashok Kumar S';
   res.locals.currentUser = null;
   res.locals.currentAdmin = null;
-  res.locals.firebaseWebConfig = firebaseWebConfig;
   next();
+});
+
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('[server] Database connection error:', err.message);
+    if (req.originalUrl.startsWith('/api/')) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection failed. Please verify MongoDB connection string.',
+      });
+    }
+    return res.status(500).render('error', {
+      title: 'Database connection error',
+      message: 'Unable to connect to the database. Please check configuration.',
+    });
+  }
 });
 
 app.use(attachUserIfPresent);
 
-// Public Firebase client configuration endpoint
-app.get('/api/config/firebase', (req, res) => {
-  res.json({
-    success: true,
-    config: firebaseWebConfig,
-  });
-});
-
-// Firebase diagnostic endpoint — only visible in development
-app.get('/api/config/firebase/debug', (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(404).json({ success: false, message: 'Not available in production.' });
-  }
-  const { getFirebaseAdmin } = require('./config/firebaseAdmin');
-  const adminApp = getFirebaseAdmin();
-  res.json({
-    success: true,
-    webConfig: {
-      projectId: firebaseWebConfig.projectId || '(MISSING)',
-      authDomain: firebaseWebConfig.authDomain || '(MISSING)',
-      appId: firebaseWebConfig.appId || '(MISSING)',
-      apiKeyPresent: Boolean(firebaseWebConfig.apiKey),
-    },
-    adminSdk: {
-      initialized: Boolean(adminApp),
-      credentialStrategy: adminApp
-        ? (process.env.FIREBASE_SERVICE_ACCOUNT_PATH && require('fs').existsSync(require('path').resolve(process.cwd(), process.env.FIREBASE_SERVICE_ACCOUNT_PATH)) ? 'service_account_file' :
-           process.env.FIREBASE_SERVICE_ACCOUNT_JSON ? 'service_account_json' :
-           process.env.FIREBASE_CLIENT_EMAIL ? 'individual_env_vars' : 'application_default_or_project_only')
-        : 'none',
-      serviceAccountPathSet: Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_PATH),
-      serviceAccountFileExists: process.env.FIREBASE_SERVICE_ACCOUNT_PATH
-        ? require('fs').existsSync(require('path').resolve(process.cwd(), process.env.FIREBASE_SERVICE_ACCOUNT_PATH))
-        : false,
-      clientEmailSet: Boolean(process.env.FIREBASE_CLIENT_EMAIL),
-    },
-    instructions: adminApp
-      ? 'Admin SDK is initialized. If token verification fails, ensure the Firebase project Phone provider is enabled.'
-      : 'Admin SDK has NO credential. Download serviceAccountKey.json from Firebase Console -> Project Settings -> Service accounts and set FIREBASE_SERVICE_ACCOUNT_PATH in .env',
-  });
-});
 
 // ---------- Routes ----------
 app.get('/', (req, res) =>

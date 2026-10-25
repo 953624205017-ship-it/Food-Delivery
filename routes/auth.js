@@ -11,7 +11,6 @@ const {
   verifyOtp,
 } = require('../utils/otpService');
 const { isEmailConfigured } = require('../utils/emailService');
-const { verifyFirebaseIdToken } = require('../config/firebaseAdmin');
 const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
@@ -220,15 +219,12 @@ router.post(
   ['/api/auth/register/verify-otp', '/api/auth/register/verify-email'],
   authLimiter,
   asyncHandler(async (req, res, next) => {
-    // If client sends idToken (from legacy Firebase Phone Auth), forward to Firebase handler
-    if (req.body.idToken) {
-      req.url = '/api/auth/register/verify-firebase';
-      return router.handle(req, res, next);
-    }
-
-    const code = req.body.code || req.body.otp;
+    const code = String(req.body.code || req.body.otp || '').trim();
     if (!code) {
-      return res.status(400).json({ success: false, message: 'Please enter the 6-digit verification code.' });
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter the 6-digit verification code.',
+      });
     }
 
     // Retrieve pending registration details from signed cookie or request body
@@ -388,162 +384,6 @@ router.post('/api/auth/logout', (req, res) => {
   res.json({ success: true, redirect: '/login' });
 });
 
-// ---------- Firebase Phone Auth Endpoints (Preserved for compatibility) ----------
-router.post(
-  '/api/auth/register/verify-firebase',
-  authLimiter,
-  asyncHandler(async (req, res) => {
-    const { idToken } = req.body;
-    if (!idToken) {
-      return res.status(400).json({ success: false, message: 'Firebase authentication token is required.' });
-    }
-
-    let decodedToken;
-    try {
-      decodedToken = await verifyFirebaseIdToken(idToken);
-    } catch (err) {
-      const status = err.code === 'FIREBASE_NOT_CONFIGURED' ? 500 : 401;
-      return res.status(status).json({
-        success: false,
-        message: err.message || 'Firebase token verification failed.',
-      });
-    }
-
-    let payload = null;
-    const pendingCookie = req.cookies?.pending_registration;
-    if (pendingCookie) {
-      try {
-        payload = jwt.verify(pendingCookie, process.env.JWT_SECRET);
-      } catch (_) {}
-    }
-
-    if (!payload && req.body.username && req.body.password && req.body.phone) {
-      payload = {
-        username: req.body.username,
-        email: req.body.email ? normalizeEmail(req.body.email) : undefined,
-        password: req.body.password,
-        age: Number(req.body.age || 20),
-        dob: req.body.dob,
-        phone: normalizePhone(req.body.phone),
-      };
-    }
-
-    if (!payload) {
-      return res.status(400).json({
-        success: false,
-        message: 'Registration session expired. Please fill the registration form again.',
-      });
-    }
-
-    const verifiedPhone = normalizePhone(decodedToken.phone_number);
-    let user = await User.findOne({ phone: verifiedPhone });
-    if (!user) user = new User({ phone: verifiedPhone });
-
-    user.username = payload.username;
-    if (payload.email) user.email = payload.email;
-    user.age = payload.age;
-    if (payload.dob) user.dob = payload.dob;
-    await user.setPassword(payload.password);
-    user.phoneVerified = true;
-    user.isActive = true;
-    user.firebaseUid = decodedToken.uid;
-    await user.save();
-
-    res.clearCookie('pending_registration');
-    issueUserToken(res, user);
-
-    res.json({
-      success: true,
-      message: 'Account created successfully!',
-      redirect: '/dashboard',
-    });
-  })
-);
-
-router.post(
-  ['/api/auth/login/verify-firebase', '/api/auth/firebase-login'],
-  authLimiter,
-  asyncHandler(async (req, res) => {
-    const { idToken } = req.body;
-    if (!idToken) {
-      return res.status(400).json({ success: false, message: 'Firebase authentication token is required.' });
-    }
-
-    let decodedToken;
-    try {
-      decodedToken = await verifyFirebaseIdToken(idToken);
-    } catch (err) {
-      const status = err.code === 'FIREBASE_NOT_CONFIGURED' ? 500 : 401;
-      return res.status(status).json({
-        success: false,
-        message: err.message || 'Firebase token verification failed.',
-      });
-    }
-
-    const normalizedPhone = normalizePhone(decodedToken.phone_number);
-    const user = await User.findOne({ phone: normalizedPhone, isActive: true });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        notRegistered: true,
-        message: 'No active account found for this mobile number. Please create an account.',
-      });
-    }
-
-    if (!user.firebaseUid) {
-      user.firebaseUid = decodedToken.uid;
-      await user.save();
-    }
-
-    issueUserToken(res, user);
-    res.json({
-      success: true,
-      message: 'Logged in successfully!',
-      redirect: '/dashboard',
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        phone: user.phone,
-      },
-    });
-  })
-);
-
-router.post(
-  '/api/auth/verify-firebase-token',
-  authLimiter,
-  asyncHandler(async (req, res) => {
-    const { idToken } = req.body;
-    if (!idToken) {
-      return res.status(400).json({ success: false, message: 'idToken is required.' });
-    }
-
-    let decodedToken;
-    try {
-      decodedToken = await verifyFirebaseIdToken(idToken);
-    } catch (err) {
-      const status = err.code === 'FIREBASE_NOT_CONFIGURED' ? 500 : 401;
-      return res.status(status).json({
-        success: false,
-        message: err.message || 'Token verification failed.',
-      });
-    }
-
-    const normalizedPhone = normalizePhone(decodedToken.phone_number);
-    const user = await User.findOne({ phone: normalizedPhone, isActive: true });
-
-    if (user) issueUserToken(res, user);
-
-    res.json({
-      success: true,
-      message: 'Token verified successfully.',
-      isExistingUser: Boolean(user),
-      phone: normalizedPhone,
-    });
-  })
-);
 
 // Diagnostic SMTP check endpoint (dev only)
 router.get('/api/auth/smtp-check', asyncHandler(async (req, res) => {

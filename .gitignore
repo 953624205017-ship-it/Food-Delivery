@@ -7,3 +7,5 @@ npm-debug.log*
 .DS_Store
 *.log
 mongo-backup/
+.vscode/
+.vscode/

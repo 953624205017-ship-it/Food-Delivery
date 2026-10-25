@@ -2,36 +2,6 @@
 <html lang="en">
 <head>
   <%- include('partials/head') %>
-  <!-- Firebase App & Auth Compat SDKs (v11 LTS) -->
-  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
-  <style>
-    .auth-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 4px;
-      border-radius: 8px;
-    }
-    .auth-tab {
-      flex: 1;
-      text-align: center;
-      padding: 8px 12px;
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 0.9rem;
-      border-radius: 6px;
-      transition: all 0.2s ease;
-    }
-    .auth-tab.active {
-      background: var(--gold);
-      color: #000;
-      font-weight: 600;
-    }
-  </style>
 </head>
 <body>
 <div id="toast-root"></div>
@@ -40,13 +10,6 @@
     <div class="eyebrow">HOTEL LITTLE JAPPAN</div>
     <h1 class="display" style="font-size:1.6rem;">Welcome back</h1>
 
-    <!-- Login Method Switcher -->
-    <div class="auth-tabs">
-      <button type="button" class="auth-tab active" id="tabPasswordBtn">Password</button>
-      <button type="button" class="auth-tab" id="tabOtpBtn">Phone SMS OTP</button>
-    </div>
-
-    <!-- METHOD 1: Password Login (Preserved - Email or Phone) -->
     <form id="passwordLoginForm">
       <div class="field">
         <label for="pwdIdentifier">Email address or Phone number</label>
@@ -59,78 +22,13 @@
       <button type="submit" id="pwdLoginBtn" class="btn btn-gold btn-block">Log in</button>
     </form>
 
-    <!-- METHOD 2: Firebase Phone OTP Login -->
-    <div id="otpLoginSection" style="display:none;">
-      <!-- Step 2A: Phone input -->
-      <form id="otpPhoneForm">
-        <div class="field">
-          <label for="otpLoginPhone">Phone number</label>
-          <input type="tel" id="otpLoginPhone" required maxlength="10" placeholder="10-digit mobile number" />
-        </div>
-        <div id="login-recaptcha-container" style="margin: 12px 0;"></div>
-        <button type="submit" id="sendLoginOtpBtn" class="btn btn-gold btn-block">Send SMS OTP</button>
-      </form>
-
-      <!-- Step 2B: Enter OTP -->
-      <form id="otpVerifyForm" style="display:none;">
-        <p style="text-align:center; color:var(--muted); font-size:0.9rem;">
-          Enter the 6-digit SMS code sent to <span id="loginOtpPhoneDisplay" style="color:var(--gold); font-weight:600;"></span>
-        </p>
-        <div class="otp-inputs">
-          <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
-          <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
-          <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
-          <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
-          <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
-          <input type="text" inputmode="numeric" maxlength="1" class="otp-digit" />
-        </div>
-        <button type="submit" id="verifyLoginOtpBtn" class="btn btn-gold btn-block">Verify & Log in</button>
-        <div class="resend-row">
-          Didn't get it? <button type="button" id="loginResendBtn" disabled>Resend OTP</button>
-          <span id="loginResendTimer"></span>
-        </div>
-        <div style="text-align:center; margin-top: 12px;">
-          <button type="button" id="changeLoginPhoneBtn" style="background:none; border:none; color:var(--muted); font-size:0.85rem; cursor:pointer; text-decoration:underline;">
-            Change phone number
-          </button>
-        </div>
-      </form>
-    </div>
-
     <div class="form-footer-link">New here? <a href="/register">Create an account</a></div>
   </div>
 </div>
 
-<!-- Injected Firebase Client Configuration -->
-<script type="application/json" id="firebase-config-data"><%- JSON.stringify(firebaseWebConfig || {}) %></script>
-<script>
-  window.FIREBASE_CONFIG = JSON.parse(document.getElementById('firebase-config-data').textContent || '{}');
-  console.log('[login] Firebase config loaded. projectId:', window.FIREBASE_CONFIG.projectId, 'authDomain:', window.FIREBASE_CONFIG.authDomain);
-</script>
 <script src="/js/common.js"></script>
-<script src="/js/firebase-auth.js"></script>
 <script>
-  // Tab Switcher
-  const tabPasswordBtn = document.getElementById('tabPasswordBtn');
-  const tabOtpBtn = document.getElementById('tabOtpBtn');
   const passwordLoginForm = document.getElementById('passwordLoginForm');
-  const otpLoginSection = document.getElementById('otpLoginSection');
-
-  tabPasswordBtn.addEventListener('click', () => {
-    tabPasswordBtn.classList.add('active');
-    tabOtpBtn.classList.remove('active');
-    passwordLoginForm.style.display = 'block';
-    otpLoginSection.style.display = 'none';
-  });
-
-  tabOtpBtn.addEventListener('click', () => {
-    tabOtpBtn.classList.add('active');
-    tabPasswordBtn.classList.remove('active');
-    passwordLoginForm.style.display = 'none';
-    otpLoginSection.style.display = 'block';
-  });
-
-  // 1. Password Login Form (Preserved)
   passwordLoginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('pwdLoginBtn');
@@ -147,126 +45,6 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'Log in';
-    }
-  });
-
-  // 2. Firebase Phone OTP Login
-  const otpPhoneForm = document.getElementById('otpPhoneForm');
-  const otpVerifyForm = document.getElementById('otpVerifyForm');
-  const otpDigits = [...otpVerifyForm.querySelectorAll('.otp-digit')];
-  const loginResendBtn = document.getElementById('loginResendBtn');
-  const loginResendTimer = document.getElementById('loginResendTimer');
-  const changeLoginPhoneBtn = document.getElementById('changeLoginPhoneBtn');
-  let activeConfirmationResult = null;
-  let currentLoginPhone = '';
-  let cooldownInterval;
-
-  function startCooldown(seconds) {
-    loginResendBtn.disabled = true;
-    let remaining = seconds;
-    loginResendTimer.textContent = `(${remaining}s)`;
-    clearInterval(cooldownInterval);
-    cooldownInterval = setInterval(() => {
-      remaining -= 1;
-      if (remaining <= 0) {
-        clearInterval(cooldownInterval);
-        loginResendBtn.disabled = false;
-        loginResendTimer.textContent = '';
-      } else {
-        loginResendTimer.textContent = `(${remaining}s)`;
-      }
-    }, 1000);
-  }
-
-  otpDigits.forEach((input, idx) => {
-    input.addEventListener('input', () => {
-      input.value = input.value.replace(/\D/g, '');
-      if (input.value && idx < otpDigits.length - 1) otpDigits[idx + 1].focus();
-    });
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Backspace' && !input.value && idx > 0) otpDigits[idx - 1].focus();
-    });
-  });
-
-  // Send OTP for Login
-  otpPhoneForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const rawPhone = document.getElementById('otpLoginPhone').value.trim();
-    if (!rawPhone || rawPhone.length !== 10) {
-      return showToast('Please enter a valid 10-digit Indian mobile number.', 'error');
-    }
-
-    currentLoginPhone = rawPhone;
-    const btn = document.getElementById('sendLoginOtpBtn');
-    btn.disabled = true;
-    btn.textContent = 'Sending SMS OTP...';
-
-    try {
-      activeConfirmationResult = await window.HotelFirebase.sendPhoneOtp(rawPhone, 'login-recaptcha-container');
-      document.getElementById('loginOtpPhoneDisplay').textContent = window.HotelFirebase.formatE164(rawPhone);
-      otpPhoneForm.style.display = 'none';
-      otpVerifyForm.style.display = 'block';
-      otpDigits[0].focus();
-      startCooldown(60);
-      showToast('SMS OTP sent to your phone!', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Send SMS OTP';
-    }
-  });
-
-  // Resend OTP for Login
-  loginResendBtn.addEventListener('click', async () => {
-    try {
-      loginResendBtn.disabled = true;
-      showToast('Resending SMS OTP...', 'default');
-      activeConfirmationResult = await window.HotelFirebase.sendPhoneOtp(currentLoginPhone, 'login-recaptcha-container');
-      startCooldown(60);
-      showToast('SMS OTP resent!', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-      loginResendBtn.disabled = false;
-    }
-  });
-
-  // Change phone number
-  changeLoginPhoneBtn.addEventListener('click', () => {
-    otpVerifyForm.style.display = 'none';
-    otpPhoneForm.style.display = 'block';
-    otpDigits.forEach((i) => (i.value = ''));
-    clearInterval(cooldownInterval);
-    loginResendTimer.textContent = '';
-  });
-
-  // Verify OTP for Login
-  otpVerifyForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const code = otpDigits.map((i) => i.value).join('');
-    if (code.length !== 6) return showToast('Please enter the full 6-digit code.', 'error');
-
-    const btn = document.getElementById('verifyLoginOtpBtn');
-    btn.disabled = true;
-    btn.textContent = 'Verifying OTP...';
-
-    try {
-      // 1. Confirm OTP with Firebase client
-      const idToken = await window.HotelFirebase.confirmPhoneOtp(activeConfirmationResult, code);
-
-      btn.textContent = 'Logging in...';
-
-      // 2. Verify Firebase ID Token on Express backend
-      const data = await apiPost('/api/auth/login/verify-firebase', { idToken });
-      showToast('Logged in successfully!', 'success');
-      window.location.href = data.redirect || '/dashboard';
-    } catch (err) {
-      showToast(err.message, 'error');
-      otpDigits.forEach((i) => (i.value = ''));
-      otpDigits[0].focus();
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Verify & Log in';
     }
   });
 </script>

@@ -1,24 +1,38 @@
 const mongoose = require('mongoose');
 
+let cachedPromise = null;
+
 async function connectDB() {
-  const uri = process.env.MONGO_URI;
+  const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
   if (!uri) {
-    throw new Error('MONGO_URI is not set in the environment.');
+    throw new Error('Neither MONGO_URI nor MONGODB_URI is set in the environment.');
+  }
+
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  if (cachedPromise) {
+    return cachedPromise;
   }
 
   mongoose.set('strictQuery', true);
 
-  await mongoose.connect(uri, {
-    serverSelectionTimeoutMS: 8000,
-  });
+  cachedPromise = mongoose
+    .connect(uri, {
+      serverSelectionTimeoutMS: 8000,
+    })
+    .then((conn) => {
+      console.log(`[db] MongoDB connected: ${conn.connection.host}/${conn.connection.name}`);
+      return conn.connection;
+    })
+    .catch((err) => {
+      cachedPromise = null;
+      console.error('[db] MongoDB connection error:', err.message);
+      throw err;
+    });
 
-  console.log(`[db] MongoDB connected: ${mongoose.connection.host}/${mongoose.connection.name}`);
-
-  mongoose.connection.on('error', (err) => {
-    console.error('[db] MongoDB connection error:', err.message);
-  });
-
-  return mongoose.connection;
+  return cachedPromise;
 }
 
 module.exports = connectDB;

@@ -15,6 +15,33 @@ const { authLimiter } = require('../middleware/rateLimiter');
 const { sendOrderNotificationEmail } = require('../utils/emailService');
 
 const router = express.Router();
+function issueAdminToken(res, admin) {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET is not configured in server environment.');
+  }
+
+  const token = jwt.sign(
+    {
+      id: admin._id.toString(),
+      username: admin.username,
+      role: 'admin',
+    },
+    secret,
+    {
+      expiresIn: '1d',
+      audience: 'admin',
+    }
+  );
+
+  res.cookie('admin_token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+}
 
 // ---------- Image upload config ----------
 
@@ -53,7 +80,10 @@ router.post(
   authLimiter,
   asyncHandler(async (req, res) => {
     const { username, password } = req.body;
-    const admin = await Admin.findOne({ username });
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Please enter both username and password.' });
+    }
+    const admin = await Admin.findOne({ username: String(username).trim() });
     if (!admin || !(await admin.verifyPassword(password))) {
       return res.status(401).json({ success: false, message: 'Invalid admin credentials.' });
     }
@@ -63,7 +93,12 @@ router.post(
 );
 
 router.post('/api/admin/logout', (req, res) => {
-  res.clearCookie('admin_token');
+  res.clearCookie('admin_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
   res.json({ success: true, redirect: '/admin/login' });
 });
 

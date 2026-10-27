@@ -2,7 +2,8 @@
   "version": 2,
   "functions": {
     "api/index.js": {
-      "includeFiles": "{views/**,public/**}"
+      "includeFiles": "{views/**,public/**}",
+      "maxDuration": 15
     }
   },
   "rewrites": [
@@ -12,4 +13,3 @@
     }
   ]
 }
-

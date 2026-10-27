@@ -71,16 +71,38 @@ app.use(async (req, res, next) => {
     await connectDB();
     next();
   } catch (err) {
-    console.error('[server] Database connection error:', err.message);
+    const errorName = err.name || 'DatabaseConnectionError';
+    let safeMessage = err.message || 'Unable to connect to database.';
+
+    // Sanitize any potential connection credentials in error message
+    safeMessage = safeMessage.replace(/:\/\/([^:]+):([^@]+)@/g, '://***:***@');
+
+    console.error(`[server] Database connection error [${errorName}]: ${safeMessage}`);
+
+    let hint = '';
+    if (
+      errorName === 'MongooseServerSelectionError' ||
+      safeMessage.includes('IP') ||
+      safeMessage.includes('whitelist')
+    ) {
+      hint = ' (Check MongoDB Atlas: Go to Atlas Dashboard > Network Access > Add IP Address > Allow Access From Anywhere "0.0.0.0/0")';
+    } else if (errorName === 'MissingMongoUriError') {
+      hint = ' (Check Vercel: Set MONGODB_URI in Project Settings > Environment Variables)';
+    }
+
+    const fullDiagnostic = `${safeMessage}${hint}`;
+
     if (req.originalUrl.startsWith('/api/')) {
       return res.status(500).json({
         success: false,
-        message: 'Database connection failed. Please verify MongoDB connection string.',
+        error: errorName,
+        message: fullDiagnostic,
       });
     }
+
     return res.status(500).render('error', {
       title: 'Database connection error',
-      message: 'Unable to connect to the database. Please check configuration.',
+      message: fullDiagnostic,
     });
   }
 });

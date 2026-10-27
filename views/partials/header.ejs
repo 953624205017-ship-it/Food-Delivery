@@ -1,15 +1,18 @@
 <header class="site-header">
   <div class="bar">
-    <a href="/dashboard" class="brand"><%= hotelName %> <small>Est. Alangulam</small></a>
+    <a href="/dashboard" class="brand">
+      <span class="brand-title"><%= hotelName %></span>
+      <small class="brand-sub">Est. Alangulam</small>
+    </a>
     <% if (typeof currentUser !== 'undefined' && currentUser) { %>
       <nav class="nav-links">
-        <a href="/dashboard">Menu</a>
-        <a href="/orders">Orders</a>
-        <a href="/cart" class="cart-nav-link" style="position:relative; display:inline-flex; align-items:center; gap:5px;">
+        <a href="/dashboard" class="nav-item">Menu</a>
+        <a href="/orders" class="nav-item">Orders</a>
+        <a href="/cart" class="cart-nav-link nav-item" style="position:relative; display:inline-flex; align-items:center; gap:5px;">
           🛒 Cart <span class="cart-count-badge" style="display:none; background:var(--gold, #d4af37); color:#000; border-radius:10px; padding:1px 7px; font-size:0.75rem; font-weight:700; min-width:18px; text-align:center;">0</span>
         </a>
-        <span>Hi, <%= currentUser.username %></span>
-        <a href="#" onclick="logoutUser(event)">Logout</a>
+        <span class="nav-greeting">Hi, <%= currentUser.username %></span>
+        <a href="#" class="nav-item nav-logout" onclick="logoutUser(event)">Logout</a>
       </nav>
     <% } %>
   </div>

@@ -29,7 +29,7 @@
         </div>
 
         <!-- Veg / Non-Veg -->
-        <div>
+        <div class="filter-select-col">
           <select name="veg" class="filter-select" onchange="this.form.submit()">
             <option value="all" <%= activeFilters.veg === 'all' ? 'selected' : '' %>>All Types</option>
             <option value="veg" <%= activeFilters.veg === 'veg' ? 'selected' : '' %>>🌱 Pure Veg</option>
@@ -38,7 +38,7 @@
         </div>
 
         <!-- Sort By -->
-        <div>
+        <div class="filter-select-col">
           <select name="sortBy" class="filter-select" onchange="this.form.submit()">
             <option value="featured" <%= activeFilters.sortBy === 'featured' ? 'selected' : '' %>>✨ Featured</option>
             <option value="price_asc" <%= activeFilters.sortBy === 'price_asc' ? 'selected' : '' %>>₹ Price: Low to High</option>
@@ -49,55 +49,58 @@
         </div>
 
         <!-- Price Range -->
-        <div style="display:flex; gap:6px; align-items:center;">
-          <input
-            type="number"
-            name="minPrice"
-            class="filter-input"
-            placeholder="Min ₹"
-            value="<%= activeFilters.minPrice || '' %>"
-            min="0"
-            style="width: 50%;"
-          />
-          <span style="color:var(--muted); font-size:0.8rem;">–</span>
-          <input
-            type="number"
-            name="maxPrice"
-            class="filter-input"
-            placeholder="Max ₹"
-            value="<%= activeFilters.maxPrice || '' %>"
-            min="0"
-            style="width: 50%;"
-          />
+        <div class="filter-price-col">
+          <div class="filter-price-wrap">
+            <input
+              type="number"
+              name="minPrice"
+              class="filter-input"
+              placeholder="Min ₹"
+              value="<%= activeFilters.minPrice || '' %>"
+              min="0"
+            />
+            <span class="filter-price-dash">–</span>
+            <input
+              type="number"
+              name="maxPrice"
+              class="filter-input"
+              placeholder="Max ₹"
+              value="<%= activeFilters.maxPrice || '' %>"
+              min="0"
+            />
+          </div>
         </div>
 
         <!-- Filter Submit Button -->
-        <div>
-          <button type="submit" class="btn btn-gold" style="padding:10px 18px; font-size:0.88rem;">Filter</button>
+        <div class="filter-btn-col">
+          <button type="submit" class="btn btn-gold btn-filter-submit">Filter</button>
         </div>
       </div>
 
       <!-- Category Filter Pills & Reset -->
       <div class="filter-pills-row">
-        <span style="font-size:0.82rem; font-weight:700; color:var(--muted); margin-right:4px;">Category:</span>
-        <a
-          href="/dashboard?<%= new URLSearchParams({ ...activeFilters, category: 'All' }).toString() %>"
-          class="filter-pill <%= (!activeFilters.category || activeFilters.category === 'All') ? 'active' : '' %>"
-        >
-          All
-        </a>
-        <% (categories || []).forEach(cat => { %>
+        <div class="filter-pills-top">
+          <span class="filter-pills-label">Categories</span>
+          <% if (activeFilters.search || (activeFilters.category && activeFilters.category !== 'All') || (activeFilters.veg && activeFilters.veg !== 'all') || activeFilters.minPrice || activeFilters.maxPrice || (activeFilters.sortBy && activeFilters.sortBy !== 'featured')) { %>
+            <a href="/dashboard" class="filter-reset-link">Reset all filters</a>
+          <% } %>
+        </div>
+        <div class="filter-pills-list">
           <a
-            href="/dashboard?<%= new URLSearchParams({ ...activeFilters, category: cat }).toString() %>"
-            class="filter-pill <%= activeFilters.category === cat ? 'active' : '' %>"
+            href="/dashboard?<%= new URLSearchParams({ ...activeFilters, category: 'All' }).toString() %>"
+            class="filter-pill <%= (!activeFilters.category || activeFilters.category === 'All') ? 'active' : '' %>"
           >
-            <%= cat %>
+            All
           </a>
-        <% }) %>
-
-        <% if (activeFilters.search || (activeFilters.category && activeFilters.category !== 'All') || (activeFilters.veg && activeFilters.veg !== 'all') || activeFilters.minPrice || activeFilters.maxPrice || (activeFilters.sortBy && activeFilters.sortBy !== 'featured')) { %>
-          <a href="/dashboard" class="filter-reset-link">Reset all filters</a>
-        <% } %>
+          <% (categories || []).forEach(cat => { %>
+            <a
+              href="/dashboard?<%= new URLSearchParams({ ...activeFilters, category: cat }).toString() %>"
+              class="filter-pill <%= activeFilters.category === cat ? 'active' : '' %>"
+            >
+              <%= cat %>
+            </a>
+          <% }) %>
+        </div>
       </div>
     </form>
   </div>

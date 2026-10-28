@@ -2,118 +2,41 @@
 <html lang="en">
 <head>
   <%- include('../partials/head') %>
-  <style>
-    .analytics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .analytics-card {
-      background: var(--card-bg, #171a21);
-      border: 1px solid var(--border, #2a2f3d);
-      border-radius: 10px;
-      padding: 18px 20px;
-      position: relative;
-    }
-    .analytics-card .num {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: #ffffff;
-      margin-top: 4px;
-    }
-    .analytics-card.gold .num { color: #d4af37; }
-    .analytics-card.green .num { color: #22c55e; }
-    .analytics-card.blue .num { color: #3b82f6; }
-    .analytics-card.orange .num { color: #f97316; }
-    .analytics-card .label {
-      font-size: 0.8rem;
-      color: #8e95a5;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .analytics-card .sub-text {
-      font-size: 0.78rem;
-      color: #6e7687;
-      margin-top: 4px;
-    }
-
-    .chart-container {
-      background: var(--card-bg, #171a21);
-      border: 1px solid var(--border, #2a2f3d);
-      border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 24px;
-    }
-    .chart-bars {
-      display: flex;
-      align-items: flex-end;
-      gap: 12px;
-      height: 180px;
-      padding-top: 20px;
-      border-bottom: 1px solid #2a2f3d;
-    }
-    .chart-col {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 100%;
-      justify-content: flex-end;
-    }
-    .chart-bar {
-      width: 100%;
-      max-width: 42px;
-      background: linear-gradient(180deg, #d4af37 0%, rgba(212, 175, 55, 0.4) 100%);
-      border-radius: 4px 4px 0 0;
-      transition: height 0.4s ease;
-      min-height: 4px;
-    }
-    .chart-label {
-      font-size: 0.75rem;
-      color: #8e95a5;
-      margin-top: 8px;
-      text-align: center;
-    }
-    .chart-val {
-      font-size: 0.75rem;
-      color: #ffffff;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-
-    .section-two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-bottom: 24px;
-    }
-    @media (max-width: 900px) {
-      .section-two-col {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="/css/admin.css" />
 </head>
-<body>
+<body class="admin-body">
 <div id="toast-root"></div>
 <div class="admin-shell">
   <%- include('partials/sidebar') %>
   <div class="admin-main">
     <!-- Header with Date Filters -->
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+    <div class="page-header">
       <div>
-        <h1 style="font-size:1.6rem; margin:0;">Analytics Dashboard</h1>
-        <p style="color:var(--muted); font-size:0.85rem; margin:4px 0 0 0;">
+        <h1 class="page-title">Analytics Dashboard</h1>
+        <p class="page-subtitle">
           Real-time metrics calculated from verified orders and payments.
         </p>
       </div>
 
       <!-- Date Filter Form -->
       <form action="/admin" method="GET" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <input type="date" name="startDate" value="<%= dateFilter.startDate %>" class="form-control" style="padding:6px 10px; font-size:0.85rem; background:#12141a; border:1px solid #2a2f3d; color:#fff; border-radius:6px;" title="Start date" />
-        <span style="color:var(--muted);">to</span>
-        <input type="date" name="endDate" value="<%= dateFilter.endDate %>" class="form-control" style="padding:6px 10px; font-size:0.85rem; background:#12141a; border:1px solid #2a2f3d; color:#fff; border-radius:6px;" title="End date" />
+        <input
+          type="date"
+          name="startDate"
+          value="<%= dateFilter.startDate %>"
+          class="form-control"
+          style="padding:8px 12px; font-size:0.85rem; background:#120e0b; border:1px solid var(--admin-border); color:#fff; border-radius:8px;"
+          title="Start date"
+        />
+        <span style="color:var(--admin-muted); font-size:0.85rem;">to</span>
+        <input
+          type="date"
+          name="endDate"
+          value="<%= dateFilter.endDate %>"
+          class="form-control"
+          style="padding:8px 12px; font-size:0.85rem; background:#120e0b; border:1px solid var(--admin-border); color:#fff; border-radius:8px;"
+          title="End date"
+        />
         <button type="submit" class="btn btn-sm btn-gold">Filter</button>
         <% if (dateFilter.startDate || dateFilter.endDate) { %>
           <a href="/admin" class="btn btn-sm btn-outline">Reset</a>
@@ -174,9 +97,9 @@
 
     <!-- 7-Day Revenue Trend Chart -->
     <div class="chart-container">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h3 style="margin:0; font-size:1rem; color:#ffffff;">Last 7 Days Sales Trend</h3>
-        <span style="font-size:0.8rem; color:#8e95a5;">Daily revenue from verified orders</span>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <h3 style="margin:0; font-size:1.05rem; color:#ffffff; font-family:'Fraunces', Georgia, serif;">Last 7 Days Sales Trend</h3>
+        <span style="font-size:0.8rem; color:var(--admin-muted);">Daily revenue from verified orders</span>
       </div>
 
       <div class="chart-bars">
@@ -193,51 +116,53 @@
 
     <div class="section-two-col">
       <!-- Best Selling Dishes -->
-      <div class="card" style="padding:20px;">
-        <h3 style="margin:0 0 16px 0; font-size:1.05rem;">Top 5 Best-Selling Dishes</h3>
+      <div class="card">
+        <h3 class="section-title"><span>🔥</span> Top 5 Best-Selling Dishes</h3>
         <% if (!bestSellers || !bestSellers.length) { %>
-          <p style="color:var(--muted); font-size:0.9rem; margin:10px 0;">No sales data available yet.</p>
+          <p style="color:var(--admin-muted); font-size:0.9rem; margin:10px 0;">No sales data available yet.</p>
         <% } else { %>
-          <table class="data-table" style="font-size:0.9rem;">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Dish Name</th>
-                <th style="text-align:center;">Qty Sold</th>
-                <th style="text-align:right;">Revenue</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% bestSellers.forEach((item, index) => { %>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td><strong style="color:var(--gold);">#<%= index + 1 %></strong></td>
-                  <td><strong><%= item.name %></strong></td>
-                  <td style="text-align:center;"><%= item.totalQuantity %></td>
-                  <td style="text-align:right; color:var(--gold);">₹<%= Number(item.totalRevenue).toFixed(2) %></td>
+                  <th>Rank</th>
+                  <th>Dish Name</th>
+                  <th style="text-align:center;">Qty Sold</th>
+                  <th style="text-align:right;">Revenue</th>
                 </tr>
-              <% }) %>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                <% bestSellers.forEach((item, index) => { %>
+                  <tr>
+                    <td><strong style="color:var(--admin-gold-light);">#<%= index + 1 %></strong></td>
+                    <td><strong><%= item.name %></strong></td>
+                    <td style="text-align:center;"><%= item.totalQuantity %></td>
+                    <td style="text-align:right; color:var(--admin-gold-light); font-weight:700;">₹<%= Number(item.totalRevenue).toFixed(2) %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
         <% } %>
       </div>
 
       <!-- Quick Action / Menu Summary -->
-      <div class="card" style="padding:20px;">
-        <h3 style="margin:0 0 16px 0; font-size:1.05rem;">Quick Operations</h3>
+      <div class="card">
+        <h3 class="section-title"><span>⚡</span> Quick Operations</h3>
         <div style="display:flex; flex-direction:column; gap:10px;">
-          <a href="/admin/orders?status=PENDING_PAYMENT" class="btn btn-outline btn-block" style="text-align:left; display:flex; justify-content:space-between;">
+          <a href="/admin/orders?status=PENDING_PAYMENT" class="btn btn-outline btn-block" style="text-align:left; display:flex; justify-content:space-between; align-items:center;">
             <span>Review Pending Orders</span>
-            <strong><%= stats.pendingOrdersCount %></strong>
+            <strong style="color:var(--admin-warning-light);"><%= stats.pendingOrdersCount %></strong>
           </a>
-          <a href="/admin/reviews?status=approved" class="btn btn-outline btn-block" style="text-align:left; display:flex; justify-content:space-between;">
+          <a href="/admin/reviews?status=approved" class="btn btn-outline btn-block" style="text-align:left; display:flex; justify-content:space-between; align-items:center;">
             <span>Moderate Customer Reviews</span>
-            <strong><%= stats.totalReviewsCount %></strong>
+            <strong style="color:var(--admin-gold-light);"><%= stats.totalReviewsCount %></strong>
           </a>
-          <a href="/admin/foods" class="btn btn-outline btn-block" style="text-align:left; display:flex; justify-content:space-between;">
+          <a href="/admin/foods" class="btn btn-outline btn-block" style="text-align:left; display:flex; justify-content:space-between; align-items:center;">
             <span>Add / Edit Menu Items</span>
-            <strong><%= stats.foodCount %> Items</strong>
+            <strong style="color:#fff;"><%= stats.foodCount %> Items</strong>
           </a>
-          <a href="/admin/settings/delivery-zones" class="btn btn-outline btn-block" style="text-align:left; display:flex; justify-content:space-between;">
+          <a href="/admin/settings/delivery-zones" class="btn btn-outline btn-block" style="text-align:left; display:flex; justify-content:space-between; align-items:center;">
             <span>Configure Delivery Fee & Zones</span>
             <span>&rarr;</span>
           </a>
@@ -246,58 +171,60 @@
     </div>
 
     <!-- Recent Orders Table -->
-    <div class="card" style="padding:20px; overflow-x:auto;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <h3 style="margin:0; font-size:1.05rem;">Recent Orders</h3>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+        <h3 class="section-title" style="margin:0;"><span>🕒</span> Recent Orders</h3>
         <a href="/admin/orders" class="btn btn-sm btn-outline">View All Orders &rarr;</a>
       </div>
 
       <% if (!recentOrders || !recentOrders.length) { %>
-        <p style="color:var(--muted); text-align:center; padding:20px 0; margin:0;">No orders found.</p>
+        <p style="color:var(--admin-muted); text-align:center; padding:20px 0; margin:0;">No orders found.</p>
       <% } else { %>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Customer</th>
-              <th>Items</th>
-              <th>Amount</th>
-              <th>Payment</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% recentOrders.forEach(o => { %>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
               <tr>
-                <td>
-                  <strong>#<%= String(o._id).slice(-6).toUpperCase() %></strong><br/>
-                  <small style="color:var(--muted);"><%= new Date(o.createdAt).toLocaleDateString('en-IN') %></small>
-                </td>
-                <td>
-                  <%= o.user ? o.user.username : 'Guest' %><br/>
-                  <small style="color:var(--muted);"><%= o.user ? o.user.phone : '' %></small>
-                </td>
-                <td>
-                  <%= (o.items || []).map(i => `${i.name} × ${i.quantity}`).join(', ') %>
-                </td>
-                <td><strong style="color:var(--gold);">₹<%= o.totalAmount %></strong></td>
-                <td>
-                  <span style="font-size:0.8rem; text-transform:uppercase;">
-                    <%= o.payment?.provider || 'none' %>
-                  </span><br/>
-                  <small style="color:<%= o.payment?.status === 'paid' ? 'var(--success)' : 'var(--muted)' %>; font-weight:600;">
-                    <%= o.payment?.status?.toUpperCase() || 'UNPAID' %>
-                  </small>
-                </td>
-                <td>
-                  <span class="status-pill status-<%= o.status %>">
-                    <%= o.status.replace(/_/g, ' ') %>
-                  </span>
-                </td>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Items</th>
+                <th>Amount</th>
+                <th>Payment</th>
+                <th>Status</th>
               </tr>
-            <% }) %>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <% recentOrders.forEach(o => { %>
+                <tr>
+                  <td>
+                    <strong>#<%= String(o._id).slice(-6).toUpperCase() %></strong><br/>
+                    <small style="color:var(--admin-muted);"><%= new Date(o.createdAt).toLocaleDateString('en-IN') %></small>
+                  </td>
+                  <td>
+                    <%= o.user ? o.user.username : 'Guest' %><br/>
+                    <small style="color:var(--admin-muted);"><%= o.user ? o.user.phone : '' %></small>
+                  </td>
+                  <td>
+                    <%= (o.items || []).map(i => `${i.name} × ${i.quantity}`).join(', ') %>
+                  </td>
+                  <td><strong style="color:var(--admin-gold-light);">₹<%= o.totalAmount %></strong></td>
+                  <td>
+                    <span style="font-size:0.75rem; text-transform:uppercase; font-weight:700;">
+                      <%= o.payment?.provider || 'none' %>
+                    </span><br/>
+                    <small style="color:<%= o.payment?.status === 'paid' ? 'var(--admin-success-light)' : 'var(--admin-muted)' %>; font-weight:600;">
+                      <%= o.payment?.status?.toUpperCase() || 'UNPAID' %>
+                    </small>
+                  </td>
+                  <td>
+                    <span class="status-pill status-<%= o.status %>">
+                      <%= o.status.replace(/_/g, ' ') %>
+                    </span>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
       <% } %>
     </div>
   </div>

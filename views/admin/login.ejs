@@ -1,27 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><%- include('../partials/head') %></head>
-<body>
+<head>
+  <%- include('../partials/head') %>
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body class="admin-login-body">
 <div id="toast-root"></div>
-<div class="auth-shell">
-  <div class="auth-card">
-    <div class="eyebrow">ADMIN</div>
-    <h1 class="display" style="font-size:1.6rem;"><%= hotelName %></h1>
-    <form id="adminLoginForm">
-      <div class="field">
-        <label for="username">Username</label>
-        <input type="text" id="username" name="username" required />
+<div class="auth-shell admin-auth-shell">
+  <div class="auth-card admin-auth-card">
+    <div class="admin-card-header">
+      <div class="admin-badge">
+        <span class="admin-badge-icon">🛡️</span> Management Portal
       </div>
-      <div class="field">
+      <h1 class="admin-title display">
+        <span class="gold-text"><%= hotelName %></span>
+      </h1>
+      <p class="admin-subtitle">Sign in to manage kitchen, orders & billing</p>
+      <div class="admin-divider"></div>
+    </div>
+
+    <form id="adminLoginForm" class="admin-login-form">
+      <div class="field admin-field">
+        <label for="username">Admin Username</label>
+        <div class="admin-input-wrap">
+          <span class="admin-input-icon">👤</span>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            required
+            autocomplete="username"
+            placeholder="Enter admin username"
+          />
+        </div>
+      </div>
+
+      <div class="field admin-field">
         <label for="password">Password</label>
-        <input type="password" id="password" name="password" required />
+        <div class="admin-input-wrap">
+          <span class="admin-input-icon">🔒</span>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            autocomplete="current-password"
+            placeholder="••••••••"
+          />
+          <span
+            class="admin-toggle-pwd"
+            id="togglePasswordBtn"
+            role="button"
+            tabindex="0"
+            title="Toggle password visibility"
+            aria-label="Toggle password visibility"
+          >👁️</span>
+        </div>
       </div>
-      <button type="submit" class="btn btn-dark btn-block">Log in to Admin</button>
+
+      <button type="submit" class="admin-submit-btn">
+        <span>Log in to Admin</span>
+        <span class="admin-submit-icon">→</span>
+      </button>
     </form>
+
+    <div class="admin-footer">
+      <div class="admin-security-note">
+        <span>🔒</span> 256-Bit Encrypted Session · Authorized Personnel Only
+      </div>
+      <a href="/dashboard" class="admin-back-link">← Return to Restaurant Menu</a>
+    </div>
   </div>
 </div>
+
 <script src="/js/common.js"></script>
 <script>
+  // Password visibility toggle
+  const toggleBtn = document.getElementById('togglePasswordBtn');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const pwdInput = document.getElementById('password');
+      if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        toggleBtn.textContent = '🙈';
+      } else {
+        pwdInput.type = 'password';
+        toggleBtn.textContent = '👁️';
+      }
+    });
+    toggleBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleBtn.click();
+      }
+    });
+  }
+
+  // Admin login submission handler
   document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector('button');

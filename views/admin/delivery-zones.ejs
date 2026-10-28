@@ -1,49 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><%- include('../partials/head') %></head>
-<body>
+<head>
+  <%- include('../partials/head') %>
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body class="admin-body">
 <div id="toast-root"></div>
 <div class="admin-shell">
   <%- include('partials/sidebar') %>
   <div class="admin-main">
-    <h1 style="font-size:1.5rem;">Delivery Zones</h1>
-    <p style="color:var(--muted); max-width:560px;">
-      Orders are matched to the highest zone whose minimum amount they meet, then checked against that
-      zone's distance (and optional district). Minimum order value of ₹1,000 always applies.
-    </p>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Delivery Zones & Distance Limits</h1>
+        <p class="page-subtitle">
+          Configure delivery radius, minimum order tiers, and optional geographic boundaries from Alangulam.
+        </p>
+      </div>
+    </div>
 
-    <div class="card" style="padding:22px; margin-bottom:24px;">
-      <div class="section-title">Add Zone</div>
+    <!-- Add Zone Form Card -->
+    <div class="card">
+      <div class="section-title"><span>📍</span> Add New Delivery Zone</div>
       <form id="addZoneForm">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px;">
-          <div class="field"><label>Label</label><input type="text" name="label" required /></div>
-          <div class="field"><label>Min Order Amount (₹)</label><input type="number" name="minAmount" min="0" required /></div>
-          <div class="field"><label>Max Distance (KM)</label><input type="number" name="maxDistanceKm" min="0" step="0.1" required /></div>
-          <div class="field"><label>District Restriction (optional)</label><input type="text" name="districtRestriction" /></div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px;">
+          <div class="field">
+            <label for="zoneLabel">Zone Label *</label>
+            <input type="text" id="zoneLabel" name="label" required placeholder="e.g. Alangulam Town / Zone A" />
+          </div>
+          <div class="field">
+            <label for="zoneMinAmount">Min Order Amount (₹) *</label>
+            <input type="number" id="zoneMinAmount" name="minAmount" min="0" required placeholder="1000" />
+          </div>
+          <div class="field">
+            <label for="zoneMaxDistance">Max Distance (KM) *</label>
+            <input type="number" id="zoneMaxDistance" name="maxDistanceKm" min="0" step="0.1" required placeholder="10" />
+          </div>
+          <div class="field">
+            <label for="zoneDistrict">District Restriction (Optional)</label>
+            <input type="text" id="zoneDistrict" name="districtRestriction" placeholder="e.g. Tenkasi" />
+          </div>
         </div>
-        <button type="submit" class="btn btn-gold">Add Zone</button>
+
+        <div style="margin-top:16px;">
+          <button type="submit" class="btn btn-gold">
+            <span>Add Delivery Zone</span>
+            <span>&rarr;</span>
+          </button>
+        </div>
       </form>
     </div>
 
-    <div class="card" style="overflow-x:auto;">
-      <table class="data-table">
-        <thead><tr><th>Label</th><th>Min Amount</th><th>Max Distance</th><th>District</th><th>Active</th><th>Actions</th></tr></thead>
-        <tbody>
-          <% zones.forEach(z => { %>
-            <tr data-id="<%= z._id %>">
-              <td><%= z.label %></td>
-              <td>₹<%= z.minAmount %></td>
-              <td><%= z.maxDistanceKm %> KM</td>
-              <td><%= z.districtRestriction || '-' %></td>
-              <td><span class="status-pill <%= z.active ? 'status-PAID' : 'status-CANCELLED' %>"><%= z.active ? 'Active' : 'Inactive' %></span></td>
-              <td>
-                <button class="btn btn-sm btn-outline toggle-zone-btn"><%= z.active ? 'Deactivate' : 'Activate' %></button>
-                <button class="btn btn-sm btn-danger delete-zone-btn">Delete</button>
-              </td>
+    <!-- Zones Table Card -->
+    <div class="card">
+      <div class="section-title" style="margin-bottom:16px;"><span>🗺️</span> Active Delivery Tiers</div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Zone Label</th>
+              <th>Min Order Amount</th>
+              <th>Max Distance</th>
+              <th>District</th>
+              <th>Status</th>
+              <th style="text-align:right;">Actions</th>
             </tr>
-          <% }) %>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <% if (!zones.length) { %>
+              <tr>
+                <td colspan="6" style="text-align:center; padding:30px; color:var(--admin-muted);">
+                  No delivery zones configured yet.
+                </td>
+              </tr>
+            <% } %>
+            <% zones.forEach(z => { %>
+              <tr data-id="<%= z._id %>">
+                <td>
+                  <strong style="color:#fff; font-size:0.95rem;"><%= z.label %></strong>
+                </td>
+                <td>
+                  <strong style="color:var(--admin-gold-light);">₹<%= z.minAmount %></strong>
+                </td>
+                <td>
+                  <span style="font-weight:600;"><%= z.maxDistanceKm %> KM</span>
+                </td>
+                <td>
+                  <span style="color:var(--admin-muted);"><%= z.districtRestriction || '-' %></span>
+                </td>
+                <td>
+                  <span class="status-pill <%= z.active ? 'status-DELIVERED' : 'status-CANCELLED' %>">
+                    <%= z.active ? 'Active' : 'Inactive' %>
+                  </span>
+                </td>
+                <td style="text-align:right; white-space:nowrap;">
+                  <button type="button" class="btn btn-sm btn-outline toggle-zone-btn" style="margin-right:6px;">
+                    <%= z.active ? 'Deactivate' : 'Activate' %>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-danger delete-zone-btn">Delete</button>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -53,13 +112,17 @@
   document.getElementById('addZoneForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
     const body = Object.fromEntries(new FormData(form).entries());
     try {
       await apiPost('/api/admin/delivery-zones', body);
-      showToast('Zone added.', 'success');
+      showToast('Delivery zone added successfully.', 'success');
       window.location.reload();
     } catch (err) {
       showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
     }
   });
 
@@ -68,6 +131,7 @@
       const row = btn.closest('tr');
       const id = row.dataset.id;
       const willActivate = btn.textContent.includes('Activate') && !btn.textContent.includes('De');
+      btn.disabled = true;
       try {
         const res = await fetch(`/api/admin/delivery-zones/${id}`, {
           method: 'PUT',
@@ -80,23 +144,26 @@
         window.location.reload();
       } catch (err) {
         showToast(err.message, 'error');
+        btn.disabled = false;
       }
     });
   });
 
   document.querySelectorAll('.delete-zone-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      if (!confirm('Delete this zone?')) return;
+      if (!confirm('Are you sure you want to permanently delete this delivery zone?')) return;
       const row = btn.closest('tr');
       const id = row.dataset.id;
+      btn.disabled = true;
       try {
         const res = await fetch(`/api/admin/delivery-zones/${id}`, { method: 'DELETE' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
         row.remove();
-        showToast('Deleted.', 'success');
+        showToast('Delivery zone deleted.', 'success');
       } catch (err) {
         showToast(err.message, 'error');
+        btn.disabled = false;
       }
     });
   });

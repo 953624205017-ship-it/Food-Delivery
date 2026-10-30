@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title %> — Hotel Little Jappan Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+  <style>
+    .kitchen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    .kitchen-card { background: #1a1208; border: 1.5px solid #3a2a10; border-radius: 14px; padding: 20px; position: relative; transition: border-color .2s; }
+    .kitchen-card.new-order { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201,162,75,0.25); animation: pulseCard 1.5s ease-in-out 3; }
+    @keyframes pulseCard { 0%,100%{box-shadow:0 0 0 2px rgba(201,162,75,0.25)} 50%{box-shadow:0 0 0 6px rgba(201,162,75,0.15)} }
+    .order-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .badge-placed { background: rgba(201,162,75,.2); color: #c9a24b; }
+    .badge-paid { background: rgba(63,143,95,.2); color: #3a9460; }
+    .badge-upi { background: rgba(100,90,180,.2); color: #9090e0; }
+    .badge-accepted { background: rgba(50,130,200,.2); color: #4090d0; }
+    .badge-preparing { background: rgba(220,140,40,.2); color: #d08030; }
+    .badge-ready { background: rgba(40,180,80,.2); color: #28b450; }
+    .badge-cancelled, .badge-rejected { background: rgba(200,60,60,.2); color: #d04040; }
+    .customer-info { font-size: .85rem; color: var(--gold-light); margin: 8px 0 12px; }
+    .items-list { border-top: 1px solid #2a1e08; padding-top: 10px; margin-top: 8px; }
+    .item-row { display: flex; justify-content: space-between; font-size: .85rem; padding: 3px 0; }
+    .totals-row { display: flex; justify-content: space-between; font-weight: 700; color: var(--gold); border-top: 1px solid #2a1e08; padding-top: 8px; margin-top: 8px; font-size: .92rem; }
+    .address-block { font-size: .8rem; color: #8a7a60; margin: 8px 0; }
+    .action-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .btn-accept { background: #1a4a2a; color: #4fd47a; border: 1px solid #2d7a40; }
+    .btn-accept:hover { background: #225532; }
+    .btn-reject { background: #3d1212; color: #e05050; border: 1px solid #7a2020; }
+    .btn-reject:hover { background: #4a1818; }
+    .btn-status { background: #1a2a3a; color: var(--gold-light); border: 1px solid #2a3a5a; font-size: .8rem; padding: 6px 12px; }
+    .status-select { background: #1a1208; color: var(--gold-light); border: 1px solid #3a2a10; border-radius: 6px; padding: 6px 10px; font-size: .8rem; flex: 1; }
+    .notif-bar { display: flex; align-items: center; gap: 12px; background: rgba(201,162,75,.08); border: 1px solid rgba(201,162,75,.25); border-radius: 10px; padding: 12px 18px; margin-bottom: 22px; }
+    .notif-count { background: var(--gold); color: #111; font-weight: 800; border-radius: 20px; padding: 2px 12px; font-size: .9rem; }
+    .mute-btn { margin-left: auto; background: none; border: 1px solid #3a2a10; color: #8a7a60; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: .8rem; }
+    .mute-btn.muted { color: var(--gold); border-color: var(--gold); }
+    .rejection-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 1000; align-items: center; justify-content: center; }
+    .rejection-modal.open { display: flex; }
+    .rejection-inner { background: #1a1208; border: 1.5px solid var(--gold); border-radius: 14px; padding: 28px 24px; width: 94%; max-width: 420px; }
+    .rejection-inner textarea { width: 100%; background: #0e0b05; border: 1px solid #3a2a10; color: var(--gold-light); border-radius: 8px; padding: 10px; font-size: .9rem; min-height: 80px; resize: vertical; box-sizing: border-box; }
+    .empty-kitchen { text-align: center; padding: 60px 20px; color: #6a5a40; }
+    .empty-kitchen .icon { font-size: 3rem; margin-bottom: 12px; }
+    .order-time { font-size: .75rem; color: #6a5a40; }
+    .receipt-link { font-size: .78rem; color: #6a5a40; text-decoration: none; }
+    .receipt-link:hover { color: var(--gold); }
+  </style>
+</head>
+<body class="admin-body">
+<%- include('partials/sidebar') %>
+
+<div class="admin-content">
+  <div class="admin-topbar">
+    <h1 class="admin-page-title">🍳 Kitchen Dashboard</h1>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span id="lastRefresh" style="font-size:.78rem;color:#6a5a40;"></span>
+      <button onclick="refreshKitchen()" class="btn-admin btn-sm">↺ Refresh</button>
+    </div>
+  </div>
+
+  <!-- Notification bar -->
+  <div class="notif-bar" id="notifBar">
+    <span>🔔 New orders waiting:</span>
+    <span class="notif-count" id="notifCount"><%= newCount %></span>
+    <span style="font-size:.85rem;color:#8a7a60;" id="notifLabel">
+      <%= newCount === 0 ? 'All caught up!' : 'Need your attention' %>
+    </span>
+    <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔔 Sound On</button>
+  </div>
+
+  <% if (activeOrders.length === 0) { %>
+    <div class="empty-kitchen">
+      <div class="icon">🍽️</div>
+      <h2>No Active Orders</h2>
+      <p>New orders will appear here automatically. Page auto-refreshes every 30 seconds.</p>
+    </div>
+  <% } else { %>
+    <div class="kitchen-grid" id="kitchenGrid">
+      <% activeOrders.forEach(function(order) { %>
+        <%
+          const isNew = ['PLACED','PAID','PAYMENT_VERIFICATION_PENDING'].includes(order.status);
+          const badgeClass = {
+            PLACED:'badge-placed', PAID:'badge-paid',
+            PAYMENT_VERIFICATION_PENDING:'badge-upi',
+            ACCEPTED:'badge-accepted', PREPARING:'badge-preparing',
+            READY:'badge-ready', CANCELLED:'badge-cancelled', REJECTED:'badge-rejected'
+          }[order.status] || 'badge-placed';
+          const shortId = String(order._id).slice(-6).toUpperCase();
+          const timeAgo = new Date(order.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+        %>
+        <div class="kitchen-card <%= isNew ? 'new-order' : '' %>" id="card-<%= order._id %>">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+            <div>
+              <strong style="font-size:1rem;color:var(--gold);">#<%= shortId %></strong>
+              <span class="order-badge <%= badgeClass %>" style="margin-left:8px;"><%= order.status.replace(/_/g,' ') %></span>
+            </div>
+            <span class="order-time"><%= timeAgo %></span>
+          </div>
+
+          <div class="customer-info">
+            👤 <%= order.user ? order.user.username : 'Guest' %>
+            <% if (order.user && order.user.phone) { %> · 📞 <%= order.user.phone %><% } %>
+            · 💳 <%= (order.payment && order.payment.provider) ? order.payment.provider.toUpperCase() : 'COD' %>
+          </div>
+
+          <% if (order.deliveryAddress) { %>
+            <div class="address-block">📍 <%= order.deliveryAddress.address %><% if (order.deliveryAddress.village) { %>, <%= order.deliveryAddress.village %><% } %><% if (order.deliveryAddress.pincode) { %> — <%= order.deliveryAddress.pincode %><% } %></div>
+          <% } %>
+
+          <div class="items-list">
+            <% order.items.forEach(function(item) { %>
+              <div class="item-row">
+                <span><%= item.quantity %>× <%= item.name %></span>
+                <span>₹<%= item.lineTotal.toFixed(2) %></span>
+              </div>
+            <% }); %>
+            <div class="totals-row">
+              <span>Total</span>
+              <span>₹<%= order.totalAmount.toFixed(2) %></span>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <% if (['PLACED','PAID','PAYMENT_VERIFICATION_PENDING'].includes(order.status)) { %>
+              <button class="btn-admin btn-accept" onclick="acceptOrder('<%= order._id %>')">✓ Accept</button>
+              <button class="btn-admin btn-reject" onclick="openRejectModal('<%= order._id %>')">✗ Reject</button>
+            <% } %>
+            <% if (['ACCEPTED','PREPARING','READY','OUT_FOR_DELIVERY'].includes(order.status)) { %>
+              <select class="status-select" id="statusSel-<%= order._id %>">
+                <% ['PREPARING','READY','OUT_FOR_DELIVERY','DELIVERED'].forEach(function(s) { %>
+                  <option value="<%= s %>" <%= order.status === s ? 'selected' : '' %>><%= s.replace(/_/g,' ') %></option>
+                <% }); %>
+              </select>
+              <button class="btn-admin btn-status" onclick="updateStatus('<%= order._id %>')">Update</button>
+            <% } %>
+            <a class="receipt-link" href="/admin/orders/<%= order._id %>/receipt" target="_blank">🖨 Receipt</a>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+
+<!-- Rejection Modal -->
+<div class="rejection-modal" id="rejectModal">
+  <div class="rejection-inner">
+    <h3 style="color:var(--gold);margin-bottom:14px;">Reject Order</h3>
+    <p style="font-size:.88rem;color:#8a7a60;margin-bottom:10px;">Provide a reason for rejection (optional). Customer will be notified.</p>
+    <textarea id="rejectReason" placeholder="e.g. Item unavailable, Kitchen closed, etc."></textarea>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn-admin btn-reject" style="flex:1;" onclick="confirmReject()">Confirm Reject</button>
+      <button class="btn-admin" style="flex:1;background:#1a1208;border:1px solid #3a2a10;" onclick="closeRejectModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+  let rejectOrderId = null;
+  let soundMuted = localStorage.getItem('kitchenMuted') === 'true';
+  let lastPollTime = new Date().toISOString();
+  let knownOrderIds = new Set([<% activeOrders.forEach(function(o,i){ %>'<%= o._id %>'<% if(i < activeOrders.length-1){%>,<%}%><% }); %>]);
+
+  // Update mute button
+  function updateMuteBtn() {
+    const btn = document.getElementById('muteBtn');
+    if (soundMuted) { btn.textContent = '🔕 Sound Off'; btn.classList.add('muted'); }
+    else { btn.textContent = '🔔 Sound On'; btn.classList.remove('muted'); }
+  }
+  updateMuteBtn();
+
+  function toggleMute() {
+    soundMuted = !soundMuted;
+    localStorage.setItem('kitchenMuted', soundMuted);
+    updateMuteBtn();
+  }
+
+  function playBeep() {
+    if (soundMuted) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.3, 0.6].forEach(function(t) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.35, ctx.currentTime + t);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.25);
+        osc.start(ctx.currentTime + t);
+        osc.stop(ctx.currentTime + t + 0.25);
+      });
+    } catch(e) {}
+  }
+
+  async function refreshKitchen() {
+    try {
+      const data = await apiGet('/api/admin/kitchen/new-orders?since=' + encodeURIComponent(lastPollTime));
+      const newOrders = (data.orders || []).filter(o => !knownOrderIds.has(o._id));
+      if (newOrders.length > 0) {
+        playBeep();
+        showToast(newOrders.length + ' new order(s) received!', 'success');
+        newOrders.forEach(o => knownOrderIds.add(o._id));
+        document.getElementById('notifCount').textContent = data.count;
+        document.getElementById('notifLabel').textContent = data.count > 0 ? 'Need your attention' : 'All caught up!';
+        setTimeout(() => window.location.reload(), 1200);
+      }
+      lastPollTime = data.serverTime || new Date().toISOString();
+      document.getElementById('lastRefresh').textContent = 'Last: ' + new Date().toLocaleTimeString('en-IN');
+    } catch(e) {}
+  }
+
+  // Poll every 30 seconds
+  setInterval(refreshKitchen, 30000);
+
+  async function acceptOrder(id) {
+    try {
+      await apiPatch('/api/admin/orders/' + id + '/accept', {});
+      showToast('Order accepted!', 'success');
+      setTimeout(() => window.location.reload(), 800);
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  function openRejectModal(id) {
+    rejectOrderId = id;
+    document.getElementById('rejectReason').value = '';
+    document.getElementById('rejectModal').classList.add('open');
+  }
+
+  function closeRejectModal() {
+    rejectOrderId = null;
+    document.getElementById('rejectModal').classList.remove('open');
+  }
+
+  async function confirmReject() {
+    if (!rejectOrderId) return;
+    const reason = document.getElementById('rejectReason').value.trim();
+    try {
+      await apiPost('/api/admin/orders/' + rejectOrderId + '/reject', { reason });
+      showToast('Order rejected.', 'default');
+      closeRejectModal();
+      setTimeout(() => window.location.reload(), 800);
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  async function updateStatus(id) {
+    const sel = document.getElementById('statusSel-' + id);
+    if (!sel) return;
+    try {
+      await apiPatch('/api/admin/orders/' + id + '/status', { status: sel.value });
+      showToast('Status updated to ' + sel.value, 'success');
+      setTimeout(() => window.location.reload(), 800);
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  // Close modal on outside click
+  document.getElementById('rejectModal').addEventListener('click', function(e) {
+    if (e.target === this) closeRejectModal();
+  });
+
+  // Initial refresh time
+  document.getElementById('lastRefresh').textContent = 'Live';
+</script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Receipt #<%= String(order._id).slice(-6).toUpperCase() %></title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Courier New', Courier, monospace; background: #fff; color: #111; padding: 24px; max-width: 420px; margin: 0 auto; }
+    .hotel-name { text-align: center; font-size: 1.4rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+    .hotel-sub { text-align: center; font-size: .82rem; color: #555; margin-bottom: 16px; }
+    .divider { border: none; border-top: 1px dashed #aaa; margin: 10px 0; }
+    .order-meta { font-size: .8rem; margin-bottom: 8px; }
+    .order-meta span { display: block; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; margin: 8px 0; }
+    th { text-align: left; font-size: .75rem; border-bottom: 1px solid #aaa; padding-bottom: 4px; }
+    td { padding: 4px 0; vertical-align: top; }
+    td:last-child { text-align: right; white-space: nowrap; }
+    .totals td { font-size: .88rem; }
+    .totals .grand td { font-weight: 800; font-size: 1rem; border-top: 1px solid #aaa; padding-top: 6px; }
+    .footer { text-align: center; font-size: .75rem; color: #666; margin-top: 16px; line-height: 1.6; }
+    .print-btn { display: block; margin: 20px auto 0; padding: 10px 28px; background: #111; color: #fff; border: none; border-radius: 6px; font-size: .9rem; cursor: pointer; }
+    @media print {
+      .print-btn { display: none; }
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hotel-name">🍽 Hotel Little Jappan</div>
+  <div class="hotel-sub">Kitchen Receipt</div>
+  <hr class="divider" />
+
+  <div class="order-meta">
+    <span><strong>Order:</strong> #<%= String(order._id).slice(-6).toUpperCase() %></span>
+    <span><strong>Date:</strong> <%= new Date(order.createdAt).toLocaleString('en-IN', {dateStyle:'medium',timeStyle:'short'}) %></span>
+    <span><strong>Status:</strong> <%= order.status %></span>
+    <span><strong>Payment:</strong> <%= (order.payment && order.payment.provider) ? order.payment.provider.toUpperCase() : 'COD' %></span>
+    <% if (order.user) { %>
+      <span><strong>Customer:</strong> <%= order.user.username %><% if (order.user.phone) { %> (<%= order.user.phone %>)<% } %></span>
+    <% } %>
+    <% if (order.deliveryAddress) { %>
+      <span><strong>Address:</strong> <%= [order.deliveryAddress.address, order.deliveryAddress.village, order.deliveryAddress.pincode].filter(Boolean).join(', ') %></span>
+    <% } %>
+  </div>
+
+  <hr class="divider" />
+
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th style="text-align:center;">Qty</th>
+        <th style="text-align:right;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% order.items.forEach(function(item) { %>
+        <tr>
+          <td><%= item.name %></td>
+          <td style="text-align:center;"><%= item.quantity %></td>
+          <td>₹<%= item.lineTotal.toFixed(2) %></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+
+  <hr class="divider" />
+
+  <table class="totals">
+    <tbody>
+      <tr>
+        <td>Subtotal</td>
+        <td>₹<%= order.subtotal.toFixed(2) %></td>
+      </tr>
+      <tr>
+        <td>Delivery</td>
+        <td>₹<%= (order.totalAmount - order.subtotal).toFixed(2) %></td>
+      </tr>
+      <tr class="grand">
+        <td>TOTAL</td>
+        <td>₹<%= order.totalAmount.toFixed(2) %></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr class="divider" />
+  <div class="footer">
+    Thank you for ordering from Hotel Little Jappan!<br />
+    <% if (order.rejectionReason) { %><strong>Rejected:</strong> <%= order.rejectionReason %><br /><% } %>
+    Printed: <%= new Date().toLocaleString('en-IN') %>
+  </div>
+
+  <button class="print-btn" onclick="window.print()">🖨 Print Receipt</button>
+</body>
+</html>

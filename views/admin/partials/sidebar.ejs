@@ -17,6 +17,10 @@
     <span class="nav-icon">📦</span>
     <span>Orders</span>
   </a>
+  <a href="/admin/kitchen" class="nav-item <%= (typeof title !== 'undefined' && title && title.includes('Kitchen')) ? 'active' : '' %>">
+    <span class="nav-icon">🍳</span>
+    <span>Kitchen</span>
+  </a>
   <a href="/admin/reviews" class="nav-item <%= (typeof title !== 'undefined' && title && title.includes('Reviews')) ? 'active' : '' %>">
     <span class="nav-icon">⭐</span>
     <span>Reviews</span>

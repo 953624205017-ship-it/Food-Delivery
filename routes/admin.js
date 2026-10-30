@@ -360,6 +360,8 @@ const VALID_STATUSES = [
   'PAYMENT_VERIFICATION_PENDING',
   'PLACED',
   'PAID',
+  'ACCEPTED',
+  'REJECTED',
   'PREPARING',
   'READY',
   'OUT_FOR_DELIVERY',
@@ -542,6 +544,90 @@ router.delete(
   asyncHandler(async (req, res) => {
     await DeliveryZone.findByIdAndDelete(req.params.id);
     res.json({ success: true });
+  })
+);
+
+// ---------- Kitchen Dashboard ----------
+router.get(
+  '/admin/kitchen',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const activeStatuses = ['PLACED', 'PAID', 'PAYMENT_VERIFICATION_PENDING', 'ACCEPTED', 'PREPARING', 'READY'];
+    const [activeOrders, newCount] = await Promise.all([
+      Order.find({ status: { $in: activeStatuses } })
+        .populate('user', 'username phone email')
+        .sort({ createdAt: -1 })
+        .limit(100),
+      Order.countDocuments({ status: { $in: ['PLACED', 'PAID', 'PAYMENT_VERIFICATION_PENDING'] } }),
+    ]);
+    res.render('admin/kitchen', { title: 'Kitchen Dashboard', activeOrders, newCount });
+  })
+);
+
+// GET new orders for polling (returns JSON)
+router.get(
+  '/api/admin/kitchen/new-orders',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const since = req.query.since ? new Date(req.query.since) : new Date(Date.now() - 5 * 60 * 1000);
+    const orders = await Order.find({
+      status: { $in: ['PLACED', 'PAID', 'PAYMENT_VERIFICATION_PENDING'] },
+      createdAt: { $gte: since },
+    })
+      .populate('user', 'username phone')
+      .sort({ createdAt: -1 });
+    res.json({ success: true, orders, count: orders.length, serverTime: new Date().toISOString() });
+  })
+);
+
+// Accept order
+router.patch(
+  '/api/admin/orders/:id/accept',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id).populate('user');
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+    if (!['PLACED', 'PAID', 'PAYMENT_VERIFICATION_PENDING'].includes(order.status)) {
+      return res.status(409).json({ success: false, message: 'Order cannot be accepted in its current state.' });
+    }
+    order.status = 'ACCEPTED';
+    await order.save();
+    if (order.user) {
+      sendOrderNotificationEmail({ order, user: order.user, type: 'STATUS_UPDATED' }).catch(() => {});
+    }
+    res.json({ success: true, order });
+  })
+);
+
+// Reject order
+router.patch(
+  '/api/admin/orders/:id/reject',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id).populate('user');
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+    if (!['PLACED', 'PAID', 'PAYMENT_VERIFICATION_PENDING', 'ACCEPTED'].includes(order.status)) {
+      return res.status(409).json({ success: false, message: 'Order cannot be rejected in its current state.' });
+    }
+    const reason = (req.body.reason || '').trim();
+    order.status = 'REJECTED';
+    order.rejectionReason = reason || 'Rejected by kitchen.';
+    await order.save();
+    if (order.user) {
+      sendOrderNotificationEmail({ order, user: order.user, type: 'ORDER_CANCELLED' }).catch(() => {});
+    }
+    res.json({ success: true, order });
+  })
+);
+
+// ---------- Order Receipt (printable) ----------
+router.get(
+  '/admin/orders/:id/receipt',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id).populate('user', 'username phone email');
+    if (!order) return res.status(404).render('error', { title: 'Not Found', message: 'Order not found.' });
+    res.render('admin/receipt', { title: `Receipt #${String(order._id).slice(-6).toUpperCase()}`, order });
   })
 );
 

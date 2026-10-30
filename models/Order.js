@@ -28,7 +28,7 @@ const addressSnapshotSchema = new mongoose.Schema(
 
 const paymentSchema = new mongoose.Schema(
   {
-    provider: { type: String, default: 'razorpay' },
+    provider: { type: String, default: 'cod' },
     razorpayOrderId: String,
     razorpayPaymentId: String,
     razorpaySignature: String,
@@ -63,6 +63,8 @@ const orderSchema = new mongoose.Schema(
         'PAYMENT_VERIFICATION_PENDING',
         'PLACED',
         'PAID',
+        'ACCEPTED',
+        'REJECTED',
         'PREPARING',
         'READY',
         'OUT_FOR_DELIVERY',
@@ -72,6 +74,7 @@ const orderSchema = new mongoose.Schema(
       default: 'PENDING_PAYMENT',
     },
 
+    rejectionReason: { type: String, default: '' },
     ownerNotified: { type: Boolean, default: false },
   },
   { timestamps: true }

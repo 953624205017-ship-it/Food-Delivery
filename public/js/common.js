@@ -8,11 +8,54 @@ function showToast(message, type = 'default') {
   setTimeout(() => el.remove(), 4200);
 }
 
+async function apiGet(url) {
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.message || 'Something went wrong.');
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
 async function apiPost(url, body) {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.message || 'Something went wrong.');
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+async function apiPatch(url, body) {
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.message || 'Something went wrong.');
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+async function apiDelete(url) {
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {

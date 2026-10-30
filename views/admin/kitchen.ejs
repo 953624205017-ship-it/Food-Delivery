@@ -153,12 +153,20 @@
   </div>
 </div>
 
+<!-- Initial orders data for polling script -->
+<script id="activeOrdersData" type="application/json">
+  <%- JSON.stringify(activeOrders.map(function(o) { return String(o._id); })) %>
+</script>
 <script src="/js/common.js"></script>
 <script>
   let rejectOrderId = null;
   let soundMuted = localStorage.getItem('kitchenMuted') === 'true';
   let lastPollTime = new Date().toISOString();
-  let knownOrderIds = new Set([<% activeOrders.forEach(function(o,i){ %>'<%= o._id %>'<% if(i < activeOrders.length-1){%>,<%}%><% }); %>]);
+  let initialOrderIds = [];
+  try {
+    initialOrderIds = JSON.parse(document.getElementById('activeOrdersData')?.textContent || '[]');
+  } catch(e) {}
+  let knownOrderIds = new Set(initialOrderIds);
 
   // Update mute button
   function updateMuteBtn() {
@@ -261,3 +269,4 @@
 </script>
 </body>
 </html>
+
